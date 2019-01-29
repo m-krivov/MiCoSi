@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<InitialStates>
+  <MTs>
+    <MT pole="left" direction_x="1" direction_y="0.5025" direction_z="0" length="1e-6" state="polymerization" />
+    <MT pole="left" direction_x="1" direction_y="0.49025" direction_z="0" length="1e-6" state="polymerization" />
+    <MT pole="right" direction_x="-1" direction_y="0.5025" direction_z="0" length="1e-6" state="polymerization" />
+    <MT pole="right" direction_x="-1" direction_y="0.49025" direction_z="0" length="1e-6" state="polymerization" />
+  </MTs>
+  <Chromosomes>
+    <ChromosomePair position_x="0" position_y="0.0000033" position_z="0" orientation_x="0.0" orientation_y="0" orientation_z="0" />
+  </Chromosomes>
+</InitialStates>

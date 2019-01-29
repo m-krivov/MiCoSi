@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Poles>
+  <Coords time = 0.0,
+          lx = -7e-6, ly = 0.0, lz = 0.0,
+          rx = 7e-6, ry = 0.0, rz = 0.0 />
+  <Coords time = 80.0,
+          lx = -7e-6, ly = 0.0, lz = 0.0,
+          rx = 7e-6, ry = 0.0, rz = 0.0 />
+  <Coords time = 100.0,
+          lx = 0.0, ly = -7e-6, lz = 0.0,
+          rx = 0.0, ry = 7e-6, rz = 0.0 />
+  <Coords time = 120.0,
+          lx = 7e-6, ly = 0.0, lz = 0.0,
+          rx = -7e-6, ry = 0.0, rz = 0.0 />
+</Poles>

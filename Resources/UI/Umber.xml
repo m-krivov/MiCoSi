@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<Style>
+   <PoleStyle>
+       <Radius Value = "0.01" />
+       <LeftPoleMaterial
+           DiffColor = "(0.04, 0.9, 0.04)"
+           SpecColor = "(0.0, 1.0, 0.0)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+       <RightPoleMaterial
+           DiffColor = "(0.04, 0.9, 0.04)"
+           SpecColor = "(0.0, 1.0, 0.0)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+   </PoleStyle>
+   <TubeStyle>
+      <Width Value = "0.002"/>
+      <FreeLeftPoleTube
+           DiffColor = "(0.4, 0.4, 0.2)"
+           SpecColor = "(0.4, 0.4, 0.4)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+      <BoundLeftPoleTube
+           DiffColor = "(0.8, 0.8, 0.2)"
+           SpecColor = "(0.8, 0.8, 0.4)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+      <FreeRightPoleTube
+           DiffColor = "(0.2, 0.4, 0.4)"
+           SpecColor = "(0.4, 0.4, 0.4)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+      <BoundRightPoleTube
+           DiffColor = "(0.2, 0.8, 0.8)"
+           SpecColor = "(0.4, 0.8, 0.8)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+   </TubeStyle>
+   <ChromosomeStyle>
+      <Hand
+           DiffColor = "(0.2, 0.8, 0.8)"
+           SpecColor = "(0.08, 0.98, 0.98)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+      <Kinetohore
+           DiffColor = "(0.2, 0.8, 0.8)"
+           SpecColor = "(0.08, 0.98, 0.98)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+   </ChromosomeStyle>
+   <SpringStyle>
+      <Width Value = "0.02" />
+      <Spring
+           DiffColor = "(0.2, 0.8, 0.8)"
+           SpecColor = "(0.08, 0.98, 0.98)"
+           RimColor = "(0.0, 0.0, 0.0)" />
+   </SpringStyle>
+   <CellStyle>
+      <Cell
+           DiffColor = "(0.2, 0.2, 0.05)"
+           SpecColor = "(0.0, 0.0, 0.0)"
+           RimColor = "(0.1, 0.1, 0.1)" />
+   </CellStyle>
+</Style>

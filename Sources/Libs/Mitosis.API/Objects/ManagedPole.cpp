@@ -1,0 +1,2 @@
+
+#include "ManagedPole.h"
