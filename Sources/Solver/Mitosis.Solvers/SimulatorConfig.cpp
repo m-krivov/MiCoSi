@@ -67,5 +67,7 @@ std::string SimulatorConfig::Serialize(SimulatorConfig config)
 
 SimulatorConfig SimulatorConfig::Default()
 {
-  return SimulatorConfig(CPU);
+  // TODO: revert to 'CPU' as soon as it's refactored
+  return SimulatorConfig(EXPERIMENTAL);
+  //return SimulatorConfig(CPU);
 }

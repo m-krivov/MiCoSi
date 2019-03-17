@@ -16,13 +16,9 @@ namespace Mitosis.DxRender
   {
     private static String GetFxFile()
     {
-      String filename = System.IO.Path.Combine("UI", "Shaders.fx");
+      String filename = System.IO.Path.Combine(Directories.GetResourceDirectory(), "Shaders.fx");
       if (System.IO.File.Exists(filename))
         return filename;
-
-      String fullPath = System.IO.Path.Combine(Directories.GetBinDirectory(), "..", "UI", filename);
-      if (System.IO.File.Exists(fullPath))
-        return fullPath;
 
       throw new ApplicationException("Cannot find file with effects \"Shaders.fx\". Try to reinstall application");
     }

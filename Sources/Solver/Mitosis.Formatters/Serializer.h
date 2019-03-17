@@ -17,13 +17,13 @@ class Serializer
 
     static uint64_t SerializeVersion(const Version *programVersion, int fileFormatVersion);
 
-    // Serializes unchangeabale inforamtion about cell.
+    // Serializes unchangeabale information about cell.
     // Never returns NULL, can throw std::runtime_error().
-    static TiXmlElement *SerializeCellConfiguration(Cell *cell, uint32_t initialRandSeed, MemoryStream* stream);
+    static TiXmlElement *SerializeCellConfiguration(Cell *cell, uint32_t initialRandSeed, MemoryStream *stream);
 
     // Serializes time layer (only changeable values of the Cell parameters).
     // Never returns NULL, can throw std::runtime_error().
-    static TiXmlElement *SerializeTimeLayer(Cell *cell, double time, uint32_t randSeed, MemoryStream* stream);
+    static TiXmlElement *SerializeTimeLayer(Cell *cell, double time, uint32_t randSeed, MemoryStream *stream);
 
     // Serializes simulation parameters.
     // Never returns NULL, can throw std::runtime_error().

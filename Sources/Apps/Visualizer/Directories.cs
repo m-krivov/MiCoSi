@@ -30,8 +30,8 @@ namespace Mitosis
       }
       catch (Exception) { }
 
-      // Application was launched under VS, using current directory
-      return Directory.GetCurrentDirectory();
+      // Application was launched under VS, use the current directory
+      return Path.Combine(Directory.GetCurrentDirectory(), "SDK");
     }
 
     public static String GetBinDirectory()
