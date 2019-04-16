@@ -2,7 +2,7 @@
 #include "Defs.h"
 #include "Helpers.h"
 
-void SpellingTest(String ^props, bool isCorrect)
+static inline std::string PropsSpellingTest(String ^props, bool isCorrect)
 {
   bool hasError = false;
 
@@ -16,10 +16,12 @@ void SpellingTest(String ^props, bool isCorrect)
 
   if (hasError ^ !isCorrect)
   {
-    FAIL() << StringToString((isCorrect ? "Failed to parse correct props: \""
-                                        : "Successfully processed wrong props: \"") +
-                              props + "\"");
+    return StringToString((isCorrect ? "Failed to parse correct props: \""
+                                     : "Successfully processed wrong props: \"") +
+                          props + "\"");
   }
+
+  return std::string();
 }
 
 TEST(Props, Spelling)
@@ -49,7 +51,10 @@ TEST(Props, Spelling)
   };
 
   for each (auto props in correctProps)
-  { SpellingTest(props, true); }
+  {
+    auto ret = PropsSpellingTest(props, true);
+    ASSERT_TRUE(ret.empty()) << ret;
+  }
 
   cli::array<String ^> ^wrongProps = gcnew cli::array<String ^>
   {
@@ -73,7 +78,10 @@ TEST(Props, Spelling)
   };
 
   for each (auto props in wrongProps)
-  { SpellingTest(props, false); }
+  {
+    auto ret = PropsSpellingTest(props, false);
+    ASSERT_TRUE(ret.empty()) << ret;
+  }
 }
 
 TEST(Props, ParameterImpact)

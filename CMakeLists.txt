@@ -101,6 +101,7 @@ macro(configure_clicpp proj out_name)
   set_target_properties(${proj} PROPERTIES DOTNET_TARGET_FRAMEWORK_VERSION "v4.0")
 
   list(APPEND dotnet_deps "System.Core.dll")
+  list(APPEND dotnet_deps "System.Drawing.dll")
   set(args ${ARGN})
   list(LENGTH args arg_num)
   if(${arg_num} GREATER 0)

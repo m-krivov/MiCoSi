@@ -63,8 +63,8 @@ public ref class Vec3
     static Vec3 ^operator /(Vec3 ^vec1, double val)
     { return gcnew Vec3(vec1->x / val, vec1->y / val, vec1->z / val); }
 
-    static Vec3 ^operator -(Vec3 ^vec)
-    { return gcnew Vec3(-vec->x, -vec->y, -vec->z); }
+    //static Vec3 ^operator -(Vec3 ^vec)
+    //{ return gcnew Vec3(-vec->x, -vec->y, -vec->z); }
 };
 
 public ref class Matrix3x3
@@ -72,6 +72,7 @@ public ref class Matrix3x3
   private:
     cli::array<double> ^_a = gcnew cli::array<double>(9);
 
+  public:
     Matrix3x3()
     {
       _a[0] = 1.0;
@@ -79,7 +80,7 @@ public ref class Matrix3x3
       _a[8] = 1.0;
     }
 
-    Matrix3x3(Mat3x3D mat)
+    Matrix3x3(Mat3x3D ^mat)
     {
       for (int y = 0; y < 3; y++)
         for (int x = 0; x < 3; x++)
@@ -271,7 +272,9 @@ do {                                                    \
   {                                                     \
     Helper::PrepareTestDirectory();                     \
     ts = Helper::LaunchAndOpen(parameters);             \
-    checker(ts, arg);                                   \
+    auto ret = checker(ts, arg);                        \
+    if (!String::IsNullOrEmpty(ret))                    \
+    { FAIL() << StringToString(ret); }                  \
   }                                                     \
   catch (Exception ^ex)                                 \
   { FAIL() << StringToString(ex->Message); }            \

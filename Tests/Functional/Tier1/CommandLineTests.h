@@ -2,10 +2,7 @@
 #include "Defs.h"
 #include "Helpers.h"
 
-using namespace Mitosis;
-
-
-static void COMMAND_LINE_TEST(IEnumerable<String ^> ^cliArgs, bool isWrong)
+static inline std::string CommandLineTest(IEnumerable<String ^> ^cliArgs, bool isWrong)
 {
   for each (auto args in cliArgs)
   {
@@ -21,17 +18,19 @@ static void COMMAND_LINE_TEST(IEnumerable<String ^> ^cliArgs, bool isWrong)
     catch (Exception ^ex)
     {
       if (!isWrong)
-      { FAIL() << StringToString(String::Format("Correct arguments \"{0}\", but error detected: {1}", 
-                                 args, ex->Message)); }
+      { return StringToString(String::Format("Correct arguments \"{0}\", but error detected: {1}",
+                                             args, ex->Message)); }
       errorDetected = true;
     }
     finally
     { Helper::ClearUpTestDirectory(); }
 
     if (isWrong && !errorDetected)
-    { FAIL() << StringToString(String::Format("Wrong arguments \"{0}\", but no error detected",
-                               args)); };
+    { return StringToString(String::Format("Wrong arguments \"{0}\", but no error detected",
+                                           args)); };
   }
+
+  return std::string();
 }
 
 TEST(CommandLine, Redefinition)
@@ -42,7 +41,8 @@ TEST(CommandLine, Redefinition)
                                    "--csv --print_delay 1 --csv",
                                    "--cell my_cell.cell --cell another_my_cell.cell" };
 
-  COMMAND_LINE_TEST(argSet, true);
+  auto ret = CommandLineTest(argSet, true);
+  ASSERT_TRUE(ret.empty()) << ret;
 }
 
 TEST(CommandLine, UnknownOptions)
@@ -54,7 +54,8 @@ TEST(CommandLine, UnknownOptions)
                                    "--NeW",
                                    "--mode reset",
                                    "-continue" };
-  COMMAND_LINE_TEST(argSet, true);
+  auto ret = CommandLineTest(argSet, true);
+  ASSERT_TRUE(ret.empty()) << ret;
 }
 
 TEST(CommandLine, WrongSolvers)
@@ -65,7 +66,8 @@ TEST(CommandLine, WrongSolvers)
                                    "--solver CUDA:GF580",
                                    "--solver gold",
                                    "--solver experimental:2" };
-  COMMAND_LINE_TEST(argSet, true);
+  auto ret = CommandLineTest(argSet, true);
+  ASSERT_TRUE(ret.empty()) << ret;
 }
 
 TEST(CommandLine, NoCellForUpdate)
@@ -73,13 +75,15 @@ TEST(CommandLine, NoCellForUpdate)
   cli::array<String ^> ^argSet = { "--mode fix",
                                    "--mode continue",
                                    "--mode restart" };
-  COMMAND_LINE_TEST(argSet, true);
+  auto ret = CommandLineTest(argSet, true);
+  ASSERT_TRUE(ret.empty()) << ret;
 }
 
 TEST(CommandLine, CorrectArgs)
 {
   cli::array<String ^> ^argSet = { "--mode info", "--help" };   //no --new due to huge time with default config
-  COMMAND_LINE_TEST(argSet, false);
+  auto ret = CommandLineTest(argSet, false);
+  ASSERT_TRUE(ret.empty()) << ret;
 }
 
 TEST(CommandLine, Help)

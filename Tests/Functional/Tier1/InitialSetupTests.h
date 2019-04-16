@@ -2,47 +2,44 @@
 #include "Defs.h"
 #include "Helpers.h"
 
-#define InitialSetupChecker(ts, obj)                                                    \
-do {                                                                                    \
-  auto collections = safe_cast<Tuple<List<String ^> ^, List<String ^> ^> ^>(obj);       \
-  auto MTs  = collections->Item1;                                                       \
-  auto chrs = collections->Item2;                                                       \
-  double normalizer                                                                     \
-    = SimParams::GetDefaultValue(SimParameter::Double::R_Cell, true) / 3;               \
-                                                                                        \
-  ASSERT_EQ(1 + 1, ts->LayerCount) << StringToString("Wrong count of layers");          \
-  ts->MoveTo(0);                                                                        \
-  auto cell = ts->Current->Cell;                                                        \
-  ASSERT_EQ(Enumerable::Count(cell->MTs), MTs->Count)                                   \
-    << StringToString("Wrong count of MTs");                                            \
-  ASSERT_EQ(Enumerable::Count(cell->Chromosomes), chrs->Count)                          \
-    << StringToString("Wrong count of chromosomes");                                    \
-                                                                                        \
-  for (int i = 0; i < Enumerable::Count(cell->Chromosomes); i++)                        \
-  {                                                                                     \
-    auto chr = Enumerable::ElementAt(cell->Chromosomes, i);                             \
-    auto str = String::Format("x:{0} y:{1} z:{2}",                                      \
-                              (int)(chr->Position->X * 1000 / normalizer),              \
-                              (int)(chr->Position->Y * 1000 / normalizer),              \
-                              (int)(chr->Position->Z * 1000 / normalizer));             \
-    ASSERT_EQ(str, chrs[i])                                                             \
-      << StringToString("Initial state of chromosome was ignored");                     \
-  }                                                                                     \
-                                                                                        \
-  for (int i = 0; i < Enumerable::Count(cell->MTs); i++)                                \
-  {                                                                                     \
-    auto mt = Enumerable::ElementAt(cell->MTs, i);                                      \
-    auto str = String::Format("x:{0} y:{1} z:{2} l:{3} p:{4} s:{5}",                    \
-                              (int)(mt->Direction->X * 1000),                           \
-                              (int)(mt->Direction->Y * 1000),                           \
-                              (int)(mt->Direction->Z * 1000),                           \
-                              (int)(mt->Length * 1000 / normalizer),                    \
-                              mt->Pole->Type.ToString(),                                \
-                              mt->State.ToString());                                    \
-    ASSERT_EQ(str, MTs[i])                                                              \
-      << StringToString("Initial state of MT was ignored");                             \
-  }                                                                                     \
-} while (false)
+static inline String ^InitialSetupChecker(TimeStream ^ts, Object ^obj)
+{
+  auto collections = safe_cast<Tuple<List<String ^> ^, List<String ^> ^> ^>(obj);
+  auto MTs  = collections->Item1;
+  auto chrs = collections->Item2;
+  double normalizer = SimParams::GetDefaultValue(SimParameter::Double::R_Cell, true) / 3;
+
+  if (ts->LayerCount != 1 + 1) { return "Wrong count of layers"; }
+  ts->MoveTo(0);
+  auto cell = ts->Current->Cell;
+  if (Enumerable::Count(cell->MTs) != MTs->Count) { return "Wrong count of MTs"; }
+  if (Enumerable::Count(cell->Chromosomes) != chrs->Count) { return "Wrong count of chromosomes"; }
+
+  for (int i = 0; i < Enumerable::Count(cell->Chromosomes); i++)
+  {
+    auto chr = Enumerable::ElementAt(cell->Chromosomes, i);
+    auto str = String::Format("x:{0} y:{1} z:{2}",
+                              (int)(chr->Position->X * 1000 / normalizer),
+                              (int)(chr->Position->Y * 1000 / normalizer),
+                              (int)(chr->Position->Z * 1000 / normalizer));
+    if (str != chrs[i]) { return "Initial state of chromosome was ignored"; }
+  }
+
+  for (int i = 0; i < Enumerable::Count(cell->MTs); i++)
+  {
+    auto mt = Enumerable::ElementAt(cell->MTs, i);
+    auto str = String::Format("x:{0} y:{1} z:{2} l:{3} p:{4} s:{5}",
+                              (int)(mt->Direction->X * 1000),
+                              (int)(mt->Direction->Y * 1000),
+                              (int)(mt->Direction->Z * 1000),
+                              (int)(mt->Length * 1000 / normalizer),
+                              mt->Pole->Type.ToString(),
+                              mt->State.ToString());
+    if (str != MTs[i]) { return "Initial state of MT was ignored"; }
+  }
+
+  return nullptr;
+}
 
 static inline void InitialSetupConfiguration(int chrPairs, int mtsPerPole,
                                              [Out] LaunchParameters ^%parameters, [Out] Object ^%obj)
