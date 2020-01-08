@@ -30,5 +30,6 @@ The project is implemented using the equipment of the Center for Collective Use 
 
 ### Publications
 
-1. Krivov, M.A., Zaytsev, A.V., et al. (2018). Simulation of the biological cells division during metaphase on Lomonosov-2 supercomputer. Comput. Methods Software Dev., vol. 19, pp. 327 — 339, [PDF](http://num-meth.srcc.msu.ru/zhurnal/tom_2018/pdf/v19r430.pdf)
-2. Krivov, M.A., Zakharov, N.Yu., et al. (2016). Software for simulation of the biological cells division on GPUs. In: Russian Supercomputer Days. Proc. Int. Conf. (26-27 Sept., 2016, Moscow), pp. 582–588, [PDF](http://2016.russianscdays.org/files/pdf16/582.pdf)
+1. Krivov, M.A., and Ivanov, P.S. (2019). MiCoSi: open software for simulation of prometaphase, metaphase and anaphase of mitosis. In: Current Topics in Computational and Applied Mathematics. Proc. Int. Conf. (1-5 July, 2019, Novosibirsk, Russia), pp. 246-252, [PDF](http://dx.doi.org/10.24411/9999-016A-2019-10040)
+2. Krivov, M.A., Zaytsev, A.V., et al. (2018). Simulation of the biological cells division during metaphase on Lomonosov-2 supercomputer. Comput. Methods Software Dev., vol. 19, pp. 327 — 339, [PDF](http://num-meth.srcc.msu.ru/zhurnal/tom_2018/pdf/v19r430.pdf)
+3. Krivov, M.A., Zakharov, N.Yu., et al. (2016). Software for simulation of the biological cells division on GPUs. In: Russian Supercomputer Days. Proc. Int. Conf. (26-27 Sept., 2016, Moscow), pp. 582–588, [PDF](http://2016.russianscdays.org/files/pdf16/582.pdf)
