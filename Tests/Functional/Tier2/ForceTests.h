@@ -32,13 +32,13 @@ static inline String ^ForceDistanceChecker(TimeStream ^ts, Object ^epsObj)
   ts->MoveTo(ts->LayerCount - 1);
   {
     auto cell = ts->Current->Cell;
-    double dist1 = (gcnew Vec3(cell->GetPole(PoleType::Left)->Position) -
-                    gcnew Vec3(cell->GetPole(PoleType::Right)->Position))->Length;
+    double dist1 = (cell->GetPole(PoleType::Left)->Position +
+                    (-cell->GetPole(PoleType::Right)->Position)).Length();
 
-    double dist2 = (gcnew Vec3(cell->GetPole(PoleType::Left)->Position) -
-                    gcnew Vec3(Enumerable::First(cell->ChromosomePairs)->LeftChromosome->Position))->Length +
-                   (gcnew Vec3(cell->GetPole(PoleType::Right)->Position) -
-                    gcnew Vec3(Enumerable::First(cell->ChromosomePairs)->RightChromosome->Position))->Length;
+    double dist2 = (cell->GetPole(PoleType::Left)->Position +
+                    (-Enumerable::First(cell->ChromosomePairs)->LeftChromosome->Position)).Length() +
+                   (cell->GetPole(PoleType::Right)->Position +
+                    (-Enumerable::First(cell->ChromosomePairs)->RightChromosome->Position)).Length();
     if (Math::Abs(1.0 - dist2 / dist1) > 0.1)
     { return "Chromosomes are not centered!"; }
   }
@@ -63,15 +63,15 @@ static inline String ^ForceOrientationChecker(TimeStream ^ts, Object ^epsObj)
       if (Enumerable::Count(chr->LeftChromosome->BoundMTs) == 1 &&
           Enumerable::Count(chr->RightChromosome->BoundMTs) == 1)
       {
-        auto orient_l = gcnew Matrix3x3(chr->LeftChromosome->Orientation);
-        auto orient_r = gcnew Matrix3x3(chr->RightChromosome->Orientation);
-        auto dir_l = (gcnew Vec3(chr->LeftChromosome->Position) -
-                      gcnew Vec3(cell->GetPole(PoleType::Left)->Position))->Normailzed;
-        auto dir_r = (gcnew Vec3(chr->RightChromosome->Position) -
-                      gcnew Vec3(cell->GetPole(PoleType::Right)->Position))->Normailzed;
+        auto orient_l = Matrix3x3(chr->LeftChromosome->Orientation);
+        auto orient_r = Matrix3x3(chr->RightChromosome->Orientation);
+        auto dir_l = Vector3::Normalize(chr->LeftChromosome->Position +
+                                        (-cell->GetPole(PoleType::Left)->Position));
+        auto dir_r = Vector3::Normalize(chr->RightChromosome->Position +
+                                       (-cell->GetPole(PoleType::Right)->Position));
 
-        double cos = Math::Min(Vec3::DotProduct(dir_l, orient_l->Rotate(gcnew Vec3(-1.0, 0.0, 0.0))),
-                               Vec3::DotProduct(dir_r, orient_r->Rotate(gcnew Vec3(-1.0, 0.0, 0.0))));
+        double cos = Math::Min(Vector3::Dot(dir_l, orient_l * Vector3(-1.0f, 0.0f, 0.0f)),
+                               Vector3::Dot(dir_r, orient_r * Vector3(-1.0f, 0.0f, 0.0f)));
 
         if (cos + eps < prevCos)
         { return "Chromosomes were rotated in wrong direction"; }
@@ -85,19 +85,19 @@ static inline String ^ForceOrientationChecker(TimeStream ^ts, Object ^epsObj)
     auto cell = ts->Current->Cell;
     auto chr = Enumerable::First(cell->ChromosomePairs);
 
-    auto orient_l = gcnew Matrix3x3(chr->LeftChromosome->Orientation);
-    auto orient_r = gcnew Matrix3x3(chr->RightChromosome->Orientation);
-    auto dir_l = (gcnew Vec3(chr->LeftChromosome->Position) -
-                  gcnew Vec3(cell->GetPole(PoleType::Left)->Position))->Normailzed;
-    auto dir_r = (gcnew Vec3(chr->RightChromosome->Position) -
-                  gcnew Vec3(cell->GetPole(PoleType::Right)->Position))->Normailzed;
+    auto orient_l = Matrix3x3(chr->LeftChromosome->Orientation);
+    auto orient_r = Matrix3x3(chr->RightChromosome->Orientation);
+    auto dir_l = Vector3::Normalize(chr->LeftChromosome->Position +
+                                    (-cell->GetPole(PoleType::Left)->Position));
+    auto dir_r = Vector3::Normalize(chr->RightChromosome->Position +
+                                    (-cell->GetPole(PoleType::Right)->Position));
 
-    if (Math::Abs(Vec3::DotProduct(dir_l, orient_l->Rotate(gcnew Vec3(0.0, 1.0, 0.0)))) > 0.05 ||
-        Math::Abs(Vec3::DotProduct(dir_r, orient_r->Rotate(gcnew Vec3(0.0, 1.0, 0.0)))) > 0.05)
+    if (Math::Abs(Vector3::Dot(dir_l, orient_l * Vector3(0.0f, 1.0f, 0.0f))) > 0.05f ||
+        Math::Abs(Vector3::Dot(dir_r, orient_r * Vector3(0.0f, 1.0f, 0.0f))) > 0.05f)
     { return "Chromosomes were rotated in wrong way (Y-dimension is not perpendicular to pole axis)"; }
 
-    if (Vec3::DotProduct(dir_l, orient_l->Rotate(gcnew Vec3(-1.0, 0.0, 0.0))) < 0.95 ||
-        Vec3::DotProduct(dir_r, orient_r->Rotate(gcnew Vec3(-1.0, 0.0, 0.0))) < 0.95)
+    if (Vector3::Dot(dir_l, orient_l * Vector3(-1.0f, 0.0f, 0.0f)) < 0.95f ||
+        Vector3::Dot(dir_r, orient_r * Vector3(-1.0f, 0.0f, 0.0f)) < 0.95f)
     { return "Chromosomes were rotated in wrong way (X-dimension is not parallel to pole axis)"; }
   }
 
@@ -109,14 +109,13 @@ static inline String ^ForceDistanceAndOrientationChecker(TimeStream ^ts, Object 
   double eps = (double)epsObj;
 
   ts->Reset();
-  Vec3 ^position = nullptr;
-  Vec3 ^direction = nullptr;
+  Vector3 position;
+  Vector3 direction;
   ts->MoveTo(0);
   {
     auto cell = ts->Current->Cell;
     auto chr = Enumerable::First(cell->ChromosomePairs);
-    position = (gcnew Vec3(chr->RightChromosome->Position) +
-                gcnew Vec3(chr->LeftChromosome->Position)) / 2;
+    position = (chr->RightChromosome->Position + chr->LeftChromosome->Position) / 2;
   }
 
   bool isBound = false;
@@ -131,7 +130,7 @@ static inline String ^ForceDistanceAndOrientationChecker(TimeStream ^ts, Object 
       isBound = true;
       auto mt_l = Enumerable::First(chr->LeftChromosome->BoundMTs);
       auto mt_r = Enumerable::First(chr->RightChromosome->BoundMTs);
-      direction = (gcnew Vec3(mt_r->ForcePoint) - gcnew Vec3(mt_l->ForcePoint))->Normailzed;
+      direction = Vector3::Normalize(mt_r->ForcePoint + (-mt_l->ForcePoint));
     }
   }
 
@@ -145,16 +144,16 @@ static inline String ^ForceDistanceAndOrientationChecker(TimeStream ^ts, Object 
 
     auto mt_l = Enumerable::First(chr->LeftChromosome->BoundMTs);
     auto mt_r = Enumerable::First(chr->RightChromosome->BoundMTs);
-    auto mts_dir = (gcnew Vec3(mt_l->ForcePoint) - gcnew Vec3(mt_r->ForcePoint))->Normailzed;
-    auto poles_dir = (gcnew Vec3(cell->GetPole(PoleType::Left)->Position) -
-                      gcnew Vec3(cell->GetPole(PoleType::Right)->Position))->Normailzed;
+    auto mts_dir = Vector3::Normalize(mt_l->ForcePoint + (-mt_r->ForcePoint));
+    auto poles_dir = Vector3::Normalize(cell->GetPole(PoleType::Left)->Position +
+                                        (-cell->GetPole(PoleType::Right)->Position));
 
-    auto newPos = (gcnew Vec3(chr->RightChromosome->Position) + gcnew Vec3(chr->LeftChromosome->Position)) / 2;
-    if ((newPos - position)->Length > eps)
+    auto newPos = (chr->RightChromosome->Position + chr->LeftChromosome->Position) / 2;
+    if ((newPos + (-position)).Length() > eps)
     { return "The center of chromosome pair was moved"; }
 
-    double angle = Math::Acos(Vec3::DotProduct(mts_dir, poles_dir));
-    double angle2 = Math::Acos(Vec3::DotProduct(mts_dir, direction));
+    double angle = Math::Acos(Vector3::Dot(mts_dir, poles_dir));
+    double angle2 = Math::Acos(Vector3::Dot(mts_dir, direction));
     if (Math::Abs(angle) > 0.05 || Math::Abs(angle2) > 0.05)
     { return "Chromosomes have changed orientation"; }
   }

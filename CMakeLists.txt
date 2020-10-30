@@ -23,6 +23,10 @@ else()
   message(WARNING "Google Tests is not found, unit tests are disabled")
 endif()
 
+# Find packages for parallel simulations
+find_package(OpenMP REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
 # Define macros for less code duplication
 macro(discover_cpp dir headers cpp)
@@ -98,10 +102,13 @@ endmacro(configure_cpp proj out_name)
 macro(configure_clicpp proj out_name)
   configure_cpp(${proj} ${out_name} ${ARGN})
   set_target_properties(${proj} PROPERTIES COMMON_LANGUAGE_RUNTIME "")
-  set_target_properties(${proj} PROPERTIES DOTNET_TARGET_FRAMEWORK_VERSION "v4.0")
+  set_target_properties(${proj} PROPERTIES DOTNET_TARGET_FRAMEWORK_VERSION "v4.6")
 
   list(APPEND dotnet_deps "System.Core.dll")
+  list(APPEND dotnet_deps "System.Numerics.dll")
+  list(APPEND dotnet_deps "System.Numerics.Vectors.dll")
   list(APPEND dotnet_deps "System.Drawing.dll")
+
   set(args ${ARGN})
   list(LENGTH args arg_num)
   if(${arg_num} GREATER 0)
@@ -119,7 +126,7 @@ endmacro(configure_clicpp proj out_name)
 
 macro(configure_cs proj out_name)
   configure_filter(${proj})
-  set_target_properties(${proj} PROPERTIES DOTNET_TARGET_FRAMEWORK_VERSION "v4.0")
+  set_target_properties(${proj} PROPERTIES DOTNET_TARGET_FRAMEWORK_VERSION "v4.6")
   target_compile_options(${proj} PUBLIC "/unsafe")
 
   set(cs_deps
@@ -128,6 +135,8 @@ macro(configure_cs proj out_name)
     "System.Data"
     "System.Core"
     "System.Xml"
+    "System.Numerics"
+    "System.Numerics.Vectors"
     "System.Drawing"
     "System.Windows.Forms"
     "WindowsBase"
@@ -188,4 +197,3 @@ file(COPY ${CMAKE_SOURCE_DIR}/Resources/Samples DESTINATION ${SDK_DIR})
 include(${CMAKE_SOURCE_DIR}/3rdParty/CMakeLists.inc)
 include(${CMAKE_SOURCE_DIR}/Sources/CMakeLists.inc)
 include(${CMAKE_SOURCE_DIR}/Tests/CMakeLists.inc)
-include(${CMAKE_SOURCE_DIR}/Experiments/CMakeLists.inc)

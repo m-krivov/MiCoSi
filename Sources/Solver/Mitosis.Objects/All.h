@@ -3,6 +3,7 @@
 
 #include "Cell.h"
 #include "CellData.h"
+#include "CellOps.h"
 #include "Chromosome.h"
 #include "ChromosomePair.h"
 #include "Interfaces.h"

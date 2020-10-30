@@ -128,14 +128,16 @@ class SimParameter
       public:
         enum Type
         {
-          N_MT_Total          = 0,
-          N_Cr_Total          = 1,
-          Spring_Brake_Type    = 2,
-          Spring_Brake_MTs    = 3,
-          N_Nods              = 4,
-          Spring_Type         = 5,
-          Frozen_Coords        = 6,
-          MT_Wrapping          = 7
+          N_MT_Total                = 0,
+          N_Cr_Total                = 1,
+          Spring_Brake_Type         = 2,
+          Spring_Brake_MTs          = 3,
+          N_Nods                    = 4,
+          Spring_Type               = 5,
+          Frozen_Coords             = 6,
+          MT_Wrapping               = 7,
+          MT_Lateral_Attachments    = 8,
+          N_KMT_Max                 = 9
         };
 
       private:

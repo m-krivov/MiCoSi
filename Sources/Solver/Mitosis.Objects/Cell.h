@@ -6,8 +6,8 @@
 
 #include "Pole.h"
 
-// Object-oriented wrapper that describes the whole cell.
-// Doesn't cache values, any changes are being applied directly to base "CellData" object.
+// Object-oriented wrapper that describes the whole cell
+// Doesn't cache values, any changes are being applied directly to the base "CellData" object
 class Cell : public ICell, public IClonnable, private ICellObjectProvider
 {
   private:
@@ -21,6 +21,8 @@ class Cell : public ICell, public IClonnable, private ICellObjectProvider
     uint32_t *_springs_broken_flag;
 
   private:
+    Cell(CellData *data);
+
     virtual Pole *GetPole(uint32_t ID) const
     { return _poles[ID]; }
 
@@ -38,12 +40,10 @@ class Cell : public ICell, public IClonnable, private ICellObjectProvider
 
     void CreateObjects(CellData *data);
 
-    inline Cell(Cell &) = delete;
-    inline void operator =(Cell &) = delete;
-    Cell(CellData *data);
-
   public:
     Cell(ICellInitializer *initializer, IPoleUpdater *updater, uint32_t &initializationSeed);
+    Cell(Cell &) = delete;
+    void operator =(Cell &) = delete;
 
     virtual bool AreSpringsBroken() const
     { return *_springs_broken_flag != 0; }

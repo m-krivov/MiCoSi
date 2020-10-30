@@ -32,12 +32,14 @@ CellStats CellStats::Create(const Cell *cell)
     polyMTs += mt->State() == MTState::Polymerization ? 1 : 0;
   }
 
+  CellOps ops(cell);
+  auto kmts_per_chr = ops.CountKMTs();
   int maxBoundMTsPerChr = -1;
   int minBoundMTsPerChr = -1;
 
-  for (size_t i = 0; i < cell->Chromosomes().size(); i++)
+  for (size_t i = 0; i < kmts_per_chr.size(); i++)
   {
-    int boundMTs = (int)cell->Chromosomes()[i]->BoundMTs().size();
+    int boundMTs = (int)kmts_per_chr[i];
     maxBoundMTsPerChr = std::max(maxBoundMTsPerChr, boundMTs);
     if (minBoundMTsPerChr < 0)
       minBoundMTsPerChr = boundMTs;

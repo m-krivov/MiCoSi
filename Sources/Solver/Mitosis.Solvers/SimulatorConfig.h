@@ -3,28 +3,25 @@
 
 #include "Mitosis.Core/Defs.h"
 
-// Describes, which implementation must be used and on which device (if possible).
+// Describes, which implementation must be used and on which device (if possible)
 class SimulatorConfig
 {
   public:
     enum SimulatorType
     {
       CPU        = 1,
-      CUDA      = 2,
-      EXPERIMENTAL  = 3
+      CUDA       = 2,
     };
 
-  private:
-    SimulatorType _type;
-    int _devNumber;
-
-  public:
-    inline SimulatorConfig()
+    SimulatorConfig()
     { _type = Default()._type; _devNumber = Default()._devNumber; }
 
-    inline SimulatorConfig(SimulatorType type, int deviceNumber = -1)
-      : _type(type), _devNumber(deviceNumber)
+    SimulatorConfig(SimulatorType type, int deviceNumber = -1)
+      : _type(type), _devNumber(std::max(-1, deviceNumber))
     { /*nothing*/ }
+
+    SimulatorConfig(const SimulatorConfig &) = default;
+    SimulatorConfig &operator =(const SimulatorConfig &) = default;
 
     inline SimulatorType Type() const
     { return _type; }
@@ -32,7 +29,13 @@ class SimulatorConfig
     inline bool HasDeviceNumber(int &number) const
     { number = _devNumber; return _devNumber >= 0; }
 
-    static SimulatorConfig Parse(const char *str);
+    static SimulatorConfig Parse(const std::string &str);
+
     static std::string Serialize(SimulatorConfig config);
+
     static SimulatorConfig Default();
+
+  private:
+    SimulatorType _type;
+    int _devNumber;
 };

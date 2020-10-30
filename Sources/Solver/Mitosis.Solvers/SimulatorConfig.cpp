@@ -1,73 +1,63 @@
 
 #include "SimulatorConfig.h"
 
+namespace
+{
+constexpr const char *CPU_STR = "cpu";
+constexpr const char *CUDA_STR = "cuda";
+}
+
 //-----------------------
 //--- SimulatorConfig ---
 //-----------------------
 
-SimulatorConfig SimulatorConfig::Parse(const char *str)
+SimulatorConfig SimulatorConfig::Parse(const std::string &str)
 {
-  std::string sStr(str);
-
-  //Expermental check.
-  if (sStr == "experimental")
-    return SimulatorConfig(SimulatorConfig::EXPERIMENTAL);
-  else if (sStr == "cpu")
-    return SimulatorConfig(SimulatorConfig::CPU);
-
-  //Splitting.
-  if (sStr.size() < 4)
-    throw std::runtime_error("config string is too short");
-
-  std::string solverStr = sStr.substr(0, 4);
-  std::string devStr;
-  if (sStr.size() >= 5)
-  {
-    if (sStr[4] != ':')
-      throw std::runtime_error("wrong config string, separator ':' is expeted");
-    if (sStr.size() == 5)
-      throw std::runtime_error("wrong config string, device number not found");
-    devStr = sStr.substr(5, sStr.size() - 5);
-  }
-
-  //Casting.
   int deviceNumber = -1;
+  std::string deviceType;
 
-  if (solverStr != "cuda")
-    throw std::runtime_error("wrong config string, unknown solver");
-
-  if (!devStr.empty())
+  auto delimiter = str.find(':');
+  if (delimiter != std::string::npos)
   {
-    std::istringstream iss(devStr);
+    if (delimiter + 1 == str.size())
+    { throw std::runtime_error("wrong config string, no device number"); }
+
+    std::istringstream iss(str.substr(delimiter + 1, str.size() - delimiter - 1));
     if (!(iss >> deviceNumber) || !iss.eof() || deviceNumber < 0)
-      throw std::runtime_error("wrong config string, bad device number");
+    { throw std::runtime_error("wrong config string, bad device number"); }
+
+    deviceType = str.substr(0, delimiter);
+  }
+  else {
+    deviceType = str;
   }
 
-  return SimulatorConfig(SimulatorConfig::CUDA, deviceNumber);
+  if (deviceType != CPU_STR && deviceType != CUDA_STR)
+  { throw std::runtime_error("wrong config string, unknown solver"); }
+
+  return SimulatorConfig(deviceType == CPU_STR ? SimulatorConfig::CPU : SimulatorConfig::CUDA,
+                         deviceNumber);
 }
 
 std::string SimulatorConfig::Serialize(SimulatorConfig config)
 {
-  if (config.Type() == SimulatorConfig::EXPERIMENTAL)
-    return "experimental";
-  else if (config.Type() == SimulatorConfig::CPU)
-    return "cpu";
+  std::stringstream res;
+
+  if (config.Type() == SimulatorConfig::CPU)
+  { res << CPU_STR; }
   else if (config.Type() == SimulatorConfig::CUDA)
-  {
-    std::stringstream ss;
-    ss << "cuda";
-    int devNum = 0;
-    if (config.HasDeviceNumber(devNum))
-      ss << ":" << devNum;
-    return ss.str();
-  }
+  { res << CUDA_STR; }
   else
-    throw std::runtime_error("Internal error - wrong simulator type");
+  { throw std::runtime_error("internal error, wrong simulator type"); }
+
+  int deviceNumber = 0;
+  if (config.HasDeviceNumber(deviceNumber))
+  { res << ':' << deviceNumber; }
+
+  return res.str();
 }
 
 SimulatorConfig SimulatorConfig::Default()
 {
-  // TODO: revert to 'CPU' as soon as it's refactored
-  return SimulatorConfig(EXPERIMENTAL);
-  //return SimulatorConfig(CPU);
+  return SimulatorConfig(CPU);
 }

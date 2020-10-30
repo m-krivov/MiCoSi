@@ -21,11 +21,11 @@ static inline SimParams ^SpringConfig(int mtsPerPole)
   return config;
 }
 
-static inline double SpringLength(Vec3D ^pos1, Vec3D ^pos2)
+static inline double SpringLength(Vector3 pos1, Vector3 pos2)
 {
-  return Math::Sqrt((pos1->X - pos2->X) * (pos1->X - pos2->X) +
-                    (pos1->Y - pos2->Y) * (pos1->Y - pos2->Y) +
-                    (pos1->Z - pos2->Z) * (pos1->Z - pos2->Z));
+  return Math::Sqrt((pos1.X - pos2.X) * (pos1.X - pos2.X) +
+                    (pos1.Y - pos2.Y) * (pos1.Y - pos2.Y) +
+                    (pos1.Z - pos2.Z) * (pos1.Z - pos2.Z));
 }
 
 static inline String ^SpringChecker(TimeStream ^ts, Object ^obj)

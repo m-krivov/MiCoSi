@@ -1,12 +1,15 @@
-
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
+#include <functional>
 #include <fstream>
 #include <map>
 #include <memory>
+#include <random>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <sstream>
@@ -17,7 +20,7 @@
 // Uncomment this line if you want to work with double precision
 //#define DOUBLE_PRECISION
 
-// Uncomment to disable CUDA support.
+// Uncomment to disable CUDA support
 #define NO_CUDA
 
 

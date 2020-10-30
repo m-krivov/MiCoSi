@@ -3,8 +3,8 @@
 
 #include "Mitosis.Objects/MT.h"
 #include "Mitosis.Objects/Chromosome.h"
-#include "../Geometry/ManagedVec3D.h"
-#include "../Geometry/ManagedMat3x3D.h"
+#include "Mitosis.Objects/CellOps.h"
+#include "../Geometry/Matrix3x3.h"
 #include "IObjectWithID.h"
 #include "MappedObjects.h"
 
@@ -15,16 +15,16 @@ namespace Mitosis
   public ref class Chromosome : public IObjectWithID
   {
     private:
+      ::Cell *_cell;
       ::Chromosome *_chr;
       MappedObjects ^_objects;
-      List<MT ^> ^_cachedMTs;
 
     internal:
-      Chromosome(::Chromosome *chr, MappedObjects ^objects)
+      Chromosome(::Cell *cell, ::Chromosome *chr, MappedObjects ^objects)
       {
+        _cell = cell;
         _chr = chr;
         _objects = objects;
-        _cachedMTs = nullptr;
       }
 
       ::Chromosome *GetObject()
@@ -43,31 +43,28 @@ namespace Mitosis
         return chr != nullptr && chr->GetObject() == GetObject();
       }
 
-      property Vec3D ^Position
+      property Vector3 Position
       {
-        Vec3D ^get()
-        { return gcnew Vec3D((vec3r)_chr->Position()); }
+        Vector3 get()
+        { return Converter::ToVector3((vec3r)_chr->Position()); }
       }
 
-      property Mat3x3D ^Orientation
+      property Matrix3x3 Orientation
       {
-        Mat3x3D ^get()
-        { return gcnew Mat3x3D((mat3x3r)_chr->Orientation()); }
+        Matrix3x3 get()
+        { return Matrix3x3((mat3x3r)_chr->Orientation()); }
       }
 
       property IEnumerable<MT ^> ^BoundMTs
       {
         IEnumerable<MT ^> ^get()
         {
-          //Lazy initialization, because MTs can be changed after chromosome creation.
-          //if (_cachedMTs == nullptr)
-          {
-            _cachedMTs = gcnew List<MT ^>();
-            std::vector<::MT *> boundMTs = _chr->BoundMTs();
-            for (size_t i = 0; i < boundMTs.size(); i++)
-            { _cachedMTs->Add(_objects->GetMT(boundMTs[i]->ID())); }
-          }
-          return _cachedMTs;
+          CellOps ops(_cell);
+          auto bound_mts = ops.ExtractKMTs(_chr);
+          auto res = gcnew List<MT ^>();
+          for (size_t i = 0; i < bound_mts.size(); i++)
+          { res->Add(_objects->GetMT(bound_mts[i]->ID())); }
+          return res;
         }
       }
   };

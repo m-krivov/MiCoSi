@@ -3,7 +3,7 @@
 
 #include "IObjectWithID.h"
 #include "Mitosis.Objects/Spring.h"
-#include "../Geometry/ManagedVec3D.h"
+#include "../Geometry/Converter.h"
 
 namespace Mitosis
 {
@@ -40,16 +40,16 @@ namespace Mitosis
         { return _spring->Length(); }
       }
 
-      property Vec3D ^LeftJoint
+      property Vector3 LeftJoint
       {
-        Vec3D ^get()
-        { return gcnew Vec3D(_spring->LeftJoint()); }
+        Vector3 get()
+        { return Converter::ToVector3(_spring->LeftJoint()); }
       }
 
-      property Vec3D ^RightJoint
+      property Vector3 RightJoint
       {
-        Vec3D ^get()
-        { return gcnew Vec3D(_spring->RightJoint()); }
+        Vector3 get()
+        { return Converter::ToVector3(_spring->RightJoint()); }
       }
   };
 }

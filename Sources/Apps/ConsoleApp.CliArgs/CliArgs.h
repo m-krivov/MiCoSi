@@ -21,7 +21,6 @@ namespace Mitosis
   {
     CPU           = ::SimulatorConfig::CPU,
     CUDA          = ::SimulatorConfig::CUDA,
-    EXPERIMENTAL  = ::SimulatorConfig::EXPERIMENTAL
   };
 
   public ref class SimulatorConfig : System::IDisposable

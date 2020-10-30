@@ -22,17 +22,17 @@ static inline String ^MTDistributionChecker(TimeStream ^ts, Object ^obj)
 
   for each (auto mt in cell->MTs)
   {
-    double end_x = mt->Pole->Position->X + mt->Direction->X * mt->Length;
-    double end_y = mt->Pole->Position->Y + mt->Direction->Y * mt->Length;
-    double end_z = mt->Pole->Position->Z + mt->Direction->Z * mt->Length;
+    double end_x = mt->Pole->Position.X + mt->Direction.X * mt->Length;
+    double end_y = mt->Pole->Position.Y + mt->Direction.Y * mt->Length;
+    double end_z = mt->Pole->Position.Z + mt->Direction.Z * mt->Length;
     if (Math::Abs(Math::Sqrt(end_x * end_x + end_y * end_y + end_z * end_z) - r_cell * 1e-6) > 0.1 * r_cell * 1e-6)
     { return gcnew String("At least one MT is too short"); }
 
     bool left = mt->Pole->Type == PoleType::Left;
     int sign = left ? -1 : 1;
-    double dx = mt->Direction->X, dy = mt->Direction->Y, dz = mt->Direction->Z;
+    double dx = mt->Direction.X, dy = mt->Direction.Y, dz = mt->Direction.Z;
 
-    //X-check.
+    // X-check
     if (Math::Abs(dx) > 1e-3)
     {
       double t = -sign * offset / dx;
@@ -46,7 +46,7 @@ static inline String ^MTDistributionChecker(TimeStream ^ts, Object ^obj)
       }
     }
 
-    //Y-check.
+    // Y-check
     if (Math::Abs(dy) > 1e-3)
     {
       double t = offset / dy;
@@ -60,7 +60,7 @@ static inline String ^MTDistributionChecker(TimeStream ^ts, Object ^obj)
       }
     }
 
-    //Z-check.
+    // Z-check
     if (Math::Abs(dz) > 1e-3)
     {
       double t = offset / dz;
@@ -81,7 +81,7 @@ static inline String ^MTDistributionChecker(TimeStream ^ts, Object ^obj)
     if (hitX[pole] < 5 || hitY[pole] < 5 || hitZ[pole] < 5)
     { return gcnew String("Not enough hits"); }
     double av = (hitX[pole] / 2.0 + hitY[pole] + hitZ[pole]) / 3;
-    if (Math::Abs(hitX[pole] / 2.0 - av) > 0.5 * av ||             //50%
+    if (Math::Abs(hitX[pole] / 2.0 - av) > 0.5 * av ||             // 50%
         Math::Abs(hitY[pole] - av) > 0.5 * av ||
         Math::Abs(hitZ[pole] - av) > 0.5 * av)
     { return gcnew String("Bad distribution #1"); }
@@ -99,6 +99,9 @@ static inline String ^MTDistributionChecker(TimeStream ^ts, Object ^obj)
 TEST(MtDistribution, InitialDirections)
 {
   auto parameters = gcnew LaunchParameters();
+  parameters->Args = gcnew CliArgs();
+  parameters->Args->RngSeed = 100500;
+
   parameters->Config = gcnew SimParams();
   parameters->Config[SimParameter::Int::N_MT_Total] = 4000;
   parameters->Config[SimParameter::Int::N_Cr_Total] = 0;
@@ -115,6 +118,9 @@ TEST(MtDistribution, InitialDirections)
 TEST(MtDistribution, NewDirections)
 {
   auto parameters = gcnew LaunchParameters();
+  parameters->Args = gcnew CliArgs();
+  parameters->Args->RngSeed = 100500;
+
   parameters->Config = gcnew SimParams();
   parameters->Config[SimParameter::Int::N_MT_Total] = 4000;
   parameters->Config[SimParameter::Int::N_Cr_Total] = 0;

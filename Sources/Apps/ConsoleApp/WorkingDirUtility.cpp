@@ -91,21 +91,27 @@ Simulation *WorkingDirUtility::Start(const char *cellFile,
 }
 
 Simulation *WorkingDirUtility::Start(const char *cellFile,
-                   const char *configFile,
-                   const char *initialConditions,
-                   const char *poleCoords,
-                   size_t cellCount,
-                   uint32_t userSeed,
-                   SimulatorConfig config)
+                                     const char *configFile,
+                                     const char *initialConditions,
+                                     const char *poleCoords,
+                                     size_t cellCount,
+                                     int userSeed,
+                                     SimulatorConfig config)
 {
-  uint32_t seed = userSeed;
-  
+  auto initRng = [userSeed](Random::State &state) -> void {
+    if (userSeed < 0) { Random::Initialize(state); }
+    else { Random::Initialize(state, (uint32_t)state); }
+  };
+
   std::vector<uint32_t> seeds(cellCount);
   if (seeds.size() == 1)
-    seeds[0] = seed;
+  { initRng(seeds[0]); }
   else
-    for (size_t i = 0; i < seeds.size(); i++)
-      seeds[i] = Random::Func::TypeB(seed);
+  {
+    Random::State tmp;
+    initRng(tmp);
+    Random::Multiply(tmp, seeds);
+  }
 
   return Start(cellFile, configFile, initialConditions, poleCoords, seeds, config);
 }

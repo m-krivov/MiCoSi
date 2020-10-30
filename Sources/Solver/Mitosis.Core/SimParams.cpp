@@ -22,6 +22,9 @@ void SimParameter::Int::SafeInit()
   _ref->Register(Int::Spring_Type, Descriptor<int>("spring_type", false, 0, 1, true, 0, true, 1));
   _ref->Register(Int::Frozen_Coords, Descriptor<int>("frozen_coords", false, 0, 1, true, 0, true, 1));
   _ref->Register(Int::MT_Wrapping, Descriptor<int>("mt_wrapping", false, 1, 1, true, 0, true, 1));
+  _ref->Register(Int::MT_Lateral_Attachments, Descriptor<int>("mt_lateral_attachments",
+                                                              false, 1, 1, true, 0, true, 1));
+  _ref->Register(Int::N_KMT_Max, Descriptor<int>("n_kmt_max", false, 50, 1, true, 0, false, 0));
 }
 
 //----------------------------

@@ -26,10 +26,10 @@ namespace Mitosis
     internal:
       Cell(::Cell *cell)
       {
-        //Creating data.
+        // Creating data
         _data = gcnew CellData(&cell->Data());
 
-        //Creating objects.
+        // Creating objects
         _cell = cell;
         _objects = gcnew MappedObjects();
         _poles = gcnew Dictionary<PoleType, Pole ^>();
@@ -37,7 +37,7 @@ namespace Mitosis
         _chromosomes = gcnew List<Chromosome ^>();
         _pairs = gcnew List<ChromosomePair ^>();
 
-        //Creating wrappers.
+        // Creating wrappers
         _poles[PoleType::Left] = gcnew Pole(cell->GetPole(::PoleType::Left));
         _objects->MapPole((System::UInt32)PoleType::Left, _poles[PoleType::Left]);
         _poles[PoleType::Right] = gcnew Pole(cell->GetPole(::PoleType::Right));
@@ -54,7 +54,7 @@ namespace Mitosis
         for (size_t i = 0; i < cell->Chromosomes().size(); i++)
         {
           ::Chromosome *umchr = cell->Chromosomes()[i];
-          Chromosome ^mchr = gcnew Chromosome(umchr, _objects);
+          Chromosome ^mchr = gcnew Chromosome(cell, umchr, _objects);
           _chromosomes->Add(mchr);
           _objects->MapChromosome(umchr->ID(), mchr);
         }

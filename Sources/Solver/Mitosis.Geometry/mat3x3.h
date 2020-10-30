@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "Mitosis.Core/Defs.h"
@@ -176,19 +175,19 @@ class mat3x3
 
     inline mat3x3()
     {
-      for (int i=0; i<9; i++)
-        a[i] = (T)0.0;
+      for (int i = 0; i < 9; i++)
+      { a[i] = (T)0.0; }
     }
 
     inline mat3x3(const mat3x3<T> &mat)
     {
       for (int i = 0; i < 9; i++)
-        a[i] = mat.a[i];
+      { a[i] = mat.a[i]; }
     }
 
     inline mat3x3(T _11, T _12, T _13,
-            T _21, T _22, T _23,
-            T _31, T _32, T _33)
+                  T _21, T _22, T _23,
+                  T _31, T _32, T _33)
     {
       a[0] = _11;
       a[1] = _12;
@@ -207,7 +206,7 @@ class mat3x3
     {
       mat3x3<T> res;
       for (int i = 0; i < 9; i++)
-        res.a[i] = this->a[i] + mat.a[i];
+      { res.a[i] = a[i] + mat.a[i]; }
       return res;
     }
 
@@ -215,7 +214,7 @@ class mat3x3
     {
       mat3x3<T> res;
       for (int i = 0; i < 9; i++)
-        res.a[i] = this->a[i] - mat.a[i];
+      { res.a[i] = a[i] - mat.a[i]; }
       return res;
     }
 
@@ -223,47 +222,47 @@ class mat3x3
     {
       mat3x3<T> res;
       for (int i = 0; i < 9; i++)
-        res.a[i] = this->a[i] * val;
+      { res.a[i] = a[i] * val; }
       return res;
     }
 
     inline vec3<T> operator *(const vec3<T> &vec) const
     {
-      return vec3<T>(a[0]*vec.x + a[1]*vec.y + a[2]*vec.z,
-               a[3]*vec.x + a[4]*vec.y + a[5]*vec.z,
-               a[6]*vec.x + a[7]*vec.y + a[8]*vec.z);
+      return vec3<T>(a[0] * vec.x + a[1] * vec.y + a[2] * vec.z,
+                     a[3] * vec.x + a[4] * vec.y + a[5] * vec.z,
+                     a[6] * vec.x + a[7] * vec.y + a[8] * vec.z);
     };
 
     inline mat3x3<T> operator *(const mat3x3<T> &mat) const
     {
       mat3x3<T> res;
-      res.a[0] = this->a[0]*mat.a[0] +
-             this->a[1]*mat.a[3] +
-             this->a[2]*mat.a[6];
-      res.a[1] = this->a[0]*mat.a[1] +
-             this->a[1]*mat.a[4] +
-             this->a[2]*mat.a[7];
-      res.a[2] = this->a[0]*mat.a[2] +
-             this->a[1]*mat.a[5] +
-             this->a[2]*mat.a[8];
-      res.a[3] = this->a[3]*mat.a[0] +
-             this->a[4]*mat.a[3] +
-             this->a[5]*mat.a[6];
-      res.a[4] = this->a[3]*mat.a[1] +
-             this->a[4]*mat.a[4] +
-             this->a[5]*mat.a[7];
-      res.a[5] = this->a[3]*mat.a[2] +
-             this->a[4]*mat.a[5] +
-             this->a[5]*mat.a[8];
-      res.a[6] = this->a[6]*mat.a[0] +
-             this->a[7]*mat.a[3] +
-             this->a[8]*mat.a[6];
-      res.a[7] = this->a[6]*mat.a[1] +
-             this->a[7]*mat.a[4] +
-             this->a[8]*mat.a[7];
-      res.a[8] = this->a[6]*mat.a[2] +
-             this->a[7]*mat.a[5] +
-             this->a[8]*mat.a[8];
+      res.a[0] = a[0] * mat.a[0] +
+                 a[1] * mat.a[3] +
+                 a[2] * mat.a[6];
+      res.a[1] = a[0] * mat.a[1] +
+                 a[1] * mat.a[4] +
+                 a[2] * mat.a[7];
+      res.a[2] = a[0] * mat.a[2] +
+                 a[1] * mat.a[5] +
+                 a[2] * mat.a[8];
+      res.a[3] = a[3] * mat.a[0] +
+                 a[4] * mat.a[3] +
+                 a[5] * mat.a[6];
+      res.a[4] = a[3] * mat.a[1] +
+                 a[4] * mat.a[4] +
+                 a[5] * mat.a[7];
+      res.a[5] = a[3] * mat.a[2] +
+                 a[4] * mat.a[5] +
+                 a[5] * mat.a[8];
+      res.a[6] = a[6] * mat.a[0] +
+                 a[7] * mat.a[3] +
+                 a[8] * mat.a[6];
+      res.a[7] = a[6] * mat.a[1] +
+                 a[7] * mat.a[4] +
+                 a[8] * mat.a[7];
+      res.a[8] = a[6] * mat.a[2] +
+                 a[7] * mat.a[5] +
+                 a[8] * mat.a[8];
       return res;
     }
 
@@ -272,16 +271,10 @@ class mat3x3
       return (*this) * ((T)1.0 / val);
     }
 
-    // Strange operator. Applicable only for orthogonal matrices
-    inline mat3x3<T> operator /(const mat3x3<T> &mat) const
-    {
-      return (*this) * MatrixTranspose(mat);
-    }
-
     inline mat3x3<T> &operator =(const mat3x3<T> &mat)
     {
-      for (int i=0; i<9; i++)
-        this->a[i] = mat.a[i];
+      for (int i = 0; i < 9; i++)
+      { a[i] = mat.a[i]; }
       return *this;
     }
 };

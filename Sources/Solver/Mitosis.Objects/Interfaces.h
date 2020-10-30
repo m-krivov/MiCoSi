@@ -5,7 +5,7 @@
 
 #include "Pole.h"
 
-// Definition of the used classes.
+// Definition of the used classes
 class Cell;
 class CellData;
 class MT;
@@ -13,7 +13,7 @@ class Chromosome;
 class ChromosomePair;
 class Spring;
 
-// Interface that allows to acquire cell object by its ID.
+// Allows us to acquire cell objects (chromosomes, MTs, etc) by their IDs
 class ICellObjectProvider
 {
   public:
@@ -30,7 +30,8 @@ class ICellObjectProvider
     virtual ~ICellObjectProvider() { }
 };
 
-// Interface that describes constructed cell. Probably, not initialized.
+// Describes the constructed cell
+// Probably, it is not initialized yet
 class ICell
 {
   public:
@@ -49,14 +50,11 @@ class ICell
     virtual ~ICell() { }
 };
 
-
-
-// Interface that performs cell initialization.
-// All returned objects will be destroyed by caller.
+// Performs cell initialization
 class ICellInitializer : public IClonnable
 {
   public:
-    // Returns essential information about cell.
+    // Returns the essential information about cell.
     virtual void GetCellConfig(size_t &chrPairs, size_t &mtsPerPole) = 0;
 
     // Creates and returns configured cell object.
@@ -66,15 +64,14 @@ class ICellInitializer : public IClonnable
     virtual ~ICellInitializer() { }
 };
 
-// Updates pole's states.
+// Updates pole's state
 class IPoleUpdater : public IClonnable
 {
   public:
-    // Sets initial position of the poles.
+    // Sets the initial position of the poles
     virtual void SetInitial(Pole *left, Pole *right, uint32_t &seed) = 0;
 
-    // Changes position of the poles.
-    // Can throw std::exception.
+    // Changes the position of the poles
     virtual void MovePoles(Pole *left, Pole *right, real time, uint32_t &seed) = 0;
 
     virtual ~IPoleUpdater() { }

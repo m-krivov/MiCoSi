@@ -24,6 +24,7 @@ void RandomCellInitialzier::InitializeCell(ICell *cell, uint32_t &seed)
   double cr_hand_r = GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Hand_D, true) / 2;
   double cr_kin_r = GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_D, true) / 2;
   double cr_spring_l = GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Spring_Length, true);
+  Geometry geom((real)(r_cell * 1e-5));
 
   // Setting spring flag.
   cell->SetSpringFlag(false);
@@ -111,8 +112,8 @@ void RandomCellInitialzier::InitializeCell(ICell *cell, uint32_t &seed)
         {
           // Check distance
           // Distance between segments
-          if (Geometry::Distance(Geometry::Segment(bottomEdge, topEdge),
-                                 Geometry::Segment(bottomEdge2, topEdge2)) < 2 * cr_r + cr_spring_l + betweenGap)
+          if (geom.Distance(Geometry::Segment(bottomEdge, topEdge),
+                            Geometry::Segment(bottomEdge2, topEdge2)) < 2 * cr_r + cr_spring_l + betweenGap)
             canFlag = false;
         }
       }

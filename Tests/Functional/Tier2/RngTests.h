@@ -2,28 +2,6 @@
 #include "Defs.h"
 #include "Helpers.h"
 
-static inline String ^RngSeedChecker(TimeStream ^ts, Object ^obj)
-{
-  UInt32 seed = (UInt32)obj;
-  ts->MoveTo(0);
-  if (ts->InitialRandSeed != seed)
-  { return "Specified RNG seed was ignored"; }
-
-  return nullptr;
-}
-
-TEST(RNG, ExplicitSeed)
-{
-  auto parameters = gcnew LaunchParameters();
-  parameters->Config = gcnew SimParams();
-  parameters->Config[SimParameter::Int::N_Cr_Total] = 23;
-  parameters->Config[SimParameter::Int::N_MT_Total] = 1500;
-  parameters->Config[SimParameter::Double::Dt] = 1.0;
-  parameters->Config[SimParameter::Double::T_End] = 2.0;
-  parameters->Args->RngSeed = 100500;
-
-  UNIFIED_TEST(parameters, RngSeedChecker, (Object ^)parameters->Args->RngSeed);
-}
 
 TEST(RNG, StartRestart)
 {

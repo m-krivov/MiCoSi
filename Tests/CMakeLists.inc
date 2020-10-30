@@ -14,4 +14,11 @@ if (GTEST_FOUND)
   target_include_directories(FunctionalTests SYSTEM PUBLIC "${GTEST_INCLUDE_DIRS}")
   add_test(NAME FunctionalTests WORKING_DIRECTORY "${WORKING_DIR}"
                                 COMMAND ${WORKING_DIR}/${out_name}.exe)
+
+  discover_cpp(${CMAKE_CURRENT_LIST_DIR}/Unit UNIT_TESTS_H UNIT_TESTS_CPP)
+  add_executable(UnitTests ${UNIT_TESTS_H} ${UNIT_TESTS_CPP})
+  configure_cpp(UnitTests "UnitTests" gtest Mitosis.Core Mitosis.Geometry Mitosis.Solvers)
+  target_include_directories(UnitTests SYSTEM PUBLIC "${GTEST_INCLUDE_DIRS}")
+  add_test(NAME UnitTests WORKING_DIRECTORY "${WORKING_DIR}"
+                          COMMAND ${WORKING_DIR}/${out_name}.exe)
 endif()

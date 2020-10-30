@@ -48,7 +48,7 @@ namespace Mitosis.DxRender
       }
     }
 
-    private static Matrix FromMat3x3D(Mat3x3D mat)
+    private static Matrix FromMatrix3x3(Matrix3x3 mat)
     {
       Matrix res = new Matrix();
       res.set_Rows(0, new Vector4((float)mat[0, 0], (float)mat[1, 0], (float)mat[2, 0], 0.0f));
@@ -181,11 +181,11 @@ namespace Mitosis.DxRender
             if (force != end && mt.BoundChromosome != null)
             {
               // Building new 2D coordinate system.
-              Vec3D _center = mt.BoundChromosome.Position;
-              Vector3 center = new Vector3((float)_center.X * normalizer,
-                                           (float)_center.Y * normalizer,
-                                           (float)_center.Z * normalizer);
-              Matrix orient = FromMat3x3D(mt.BoundChromosome.Orientation);
+              System.Numerics.Vector3 _center = mt.BoundChromosome.Position;
+              Vector3 center = new Vector3(_center.X * normalizer,
+                                           _center.Y * normalizer,
+                                           _center.Z * normalizer);
+              Matrix orient = FromMatrix3x3(mt.BoundChromosome.Orientation);
               Vector4 _r1 = Vector3.Transform(new Vector3(0.0f, 0.0f, -kin_d / 2), orient);
               Vector3 r1 = new Vector3(_r1.X, _r1.Y, _r1.Z);
               Vector4 _r2 = Vector3.Transform(new Vector3(kin_d / 2, 0.0f, 0.0f), orient);
@@ -378,7 +378,7 @@ namespace Mitosis.DxRender
           Matrix transform = Matrix.Scaling(scaleX[i], scaleY[i], scaleX[i]);
           transform *= Matrix.Translation(0.0f, offsetY[i], 0.0f);
 
-          transform *= FromMat3x3D(chr.Orientation);
+          transform *= FromMatrix3x3(chr.Orientation);
 
           transform *= Matrix.Translation((float)chr.Position.X * normalizer,
                                           (float)chr.Position.Y * normalizer,

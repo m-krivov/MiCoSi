@@ -179,12 +179,12 @@ int main(int argc, char *argv[])
       case LaunchMode::New:
       {
         simulation.reset(WorkingDirUtility::Start(args.GetCellFile().c_str(),
-                              args.GetConfigFile().c_str(),
-                              args.GetInitialConditionsFile(),
-                              args.GetPoleCoordsFile(),
-                              args.GetCellCount(),
-                              args.GetRngSeed(),
-                              args.GetSolver()));
+                                                  args.GetConfigFile().c_str(),
+                                                  args.GetInitialConditionsFile(),
+                                                  args.GetPoleCoordsFile(),
+                                                  args.GetCellCount(),
+                                                  args.GetRngSeed(),
+                                                  args.GetSolver()));
         break;
       }
 

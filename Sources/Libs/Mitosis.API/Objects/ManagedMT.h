@@ -3,7 +3,7 @@
 
 #include "Mitosis.Objects/MT.h"
 #include "Mitosis.Objects/Chromosome.h"
-#include "../Geometry/ManagedVec3D.h"
+#include "../Geometry/Converter.h"
 #include "IObjectWithID.h"
 #include "MappedObjects.h"
 #include "ManagedPole.h"
@@ -51,16 +51,16 @@ namespace Mitosis
         { return _objects->GetPole((System::UInt32)_mt->GetPole()->Type()); }
       }
 
-      property Vec3D ^Direction
+      property Vector3 Direction
       {
-        Vec3D ^get()
-        { return gcnew Vec3D((vec3r)_mt->Direction()); }
+        Vector3 get()
+        { return Converter::ToVector3((vec3r)_mt->Direction()); }
       }
 
-      property Vec3D ^ForceOffset
+      property Vector3 ForceOffset
       {
-        Vec3D ^get()
-        { return gcnew Vec3D((vec3r)_mt->ForceOffset()); }
+        Vector3 get()
+        { return Converter::ToVector3((vec3r)_mt->ForceOffset()); }
       }
 
       property double Length
@@ -88,16 +88,16 @@ namespace Mitosis
         }
       }
 
-      property Vec3D ^EndPoint
+      property Vector3 EndPoint
       {
-        Vec3D ^get()
-        { return gcnew Vec3D((vec3r)_mt->EndPoint()); }
+        Vector3 get()
+        { return Converter::ToVector3((vec3r)_mt->EndPoint()); }
       }
 
-      property Vec3D ^ForcePoint
+      property Vector3 ForcePoint
       {
-        Vec3D ^get()
-        { return gcnew Vec3D((vec3r)_mt->ForcePoint()); }
+        Vector3 get()
+        { return Converter::ToVector3((vec3r)_mt->ForcePoint()); }
       }
   };
 }

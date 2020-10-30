@@ -2,6 +2,7 @@
 using System.Text;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -103,7 +104,7 @@ namespace Mitosis
       yield return new KeyValuePair<string, string>("Value", value.ToString());
     }
 
-    private string ConvertToString(Vec3D vec3D)
+    private string ConvertToString(Vector3 vec3D)
     {
       return ConvertToString(vec3D.X, vec3D.Y, vec3D.Z);
     }

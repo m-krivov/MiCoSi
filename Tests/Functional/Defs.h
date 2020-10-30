@@ -8,6 +8,7 @@ using namespace System;
 using namespace System::Collections::Generic;
 using namespace System::Linq;
 using namespace System::IO;
+using namespace System::Numerics;
 using namespace System::Globalization;
 using namespace System::Runtime::InteropServices;
 using namespace Mitosis;

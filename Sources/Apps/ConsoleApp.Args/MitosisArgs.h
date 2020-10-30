@@ -102,8 +102,8 @@ class MitosisArgs : public UniArgs
     inline void SetPoleCoordsFile(const char *value) { _poleCoords = value == NULL ? "" : value; }
 
     // Randomizer's seed.
-    inline uint32_t GetRngSeed() const { return _seed < 0 ? Random::CreateSeed() : (uint32_t)_seed; }
-    inline void SetRngSeed(uint32_t value) { _seed = std::max(0, (int)value); }
+    inline int GetRngSeed() const { return _seed; }
+    inline void SetRngSeed(int value) { _seed = value; }
 
     // Count of cells that must be processed simultaniously.
     inline int GetCellCount() const { return _cellCount; }

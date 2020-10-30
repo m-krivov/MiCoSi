@@ -6,6 +6,7 @@ static inline SimParams ^MtBindingConfig(int mtsPerPole)
 {
   auto config = gcnew SimParams();
   config[SimParameter::Int::N_MT_Total] = mtsPerPole;
+  config[SimParameter::Int::N_KMT_Max] = 1000;
   config[SimParameter::Int::N_Cr_Total] = 1;
   config[SimParameter::Int::Frozen_Coords] = 1;
   config[SimParameter::Double::Dt] = 0.1;
@@ -130,9 +131,9 @@ static inline String ^MtBindingForcePointChecker(TimeStream ^ts, Object ^hasForc
   {
     if (mt->BoundChromosome != nullptr)
     {
-      bool isForcePoint = mt->EndPoint->X != mt->ForcePoint->X ||
-                mt->EndPoint->Y != mt->ForcePoint->Y ||
-                mt->EndPoint->Z != mt->ForcePoint->Z;
+      bool isForcePoint = mt->EndPoint.X != mt->ForcePoint.X ||
+                mt->EndPoint.Y != mt->ForcePoint.Y ||
+                mt->EndPoint.Z != mt->ForcePoint.Z;
       if (isForcePoint ^ hasFP)
         return gcnew String(hasFP ? "Some force points were missed"
                                   : "Some false force points were detected");

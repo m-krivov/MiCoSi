@@ -3,7 +3,7 @@
 
 #include "IObjectWithID.h"
 #include "Mitosis.Objects/Pole.h"
-#include "../Geometry/ManagedVec3D.h"
+#include "../Geometry/Converter.h"
 
 namespace Mitosis
 {
@@ -47,10 +47,10 @@ namespace Mitosis
         }
       }
 
-      property Vec3D ^Position
+      property Vector3 Position
       {
-        Vec3D ^get()
-        { return gcnew Vec3D((vec3r)_pole->Position()); }
+        Vector3 get()
+        { return Converter::ToVector3((vec3r)_pole->Position()); }
       }
 
   };

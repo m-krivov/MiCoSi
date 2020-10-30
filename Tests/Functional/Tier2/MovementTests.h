@@ -8,6 +8,7 @@ static inline SimParams ^MovementConfig(int mtsPerPole, bool jumping)
       
   config[SimParameter::Int::N_Cr_Total] = 1;
   config[SimParameter::Int::N_MT_Total] = mtsPerPole;
+  config[SimParameter::Int::N_KMT_Max] = 2 * mtsPerPole;
   config[SimParameter::Int::Frozen_Coords] = 0;
   config[SimParameter::Double::F_Cat] = 0.0;
   config[SimParameter::Double::V_Dep] = 0.0;
@@ -54,30 +55,32 @@ static inline LaunchParameters ^MovementConfigure(bool jumping)
 static inline String ^MovementFrozenCoordsChecker(TimeStream ^ts, Object ^obj)
 {
   double eps = (double)obj;
-  Vec3 ^pos = nullptr;
+  Vector3 pos;
 
   if (ts->LayerCount < 2)
   { return "Broken test: not enough time layers"; }
 
   ts->Reset();
+  bool isFirst = true;
   while (ts->MoveNext())
   {
     auto cell = ts->Current->Cell;
     if (Enumerable::Count(cell->Chromosomes) != 2)
     { return "Broken test: the number of chromosomes must be equal to two"; }
 
-    if (pos == nullptr)
+    if (isFirst)
     {
-      pos = (gcnew Vec3(Enumerable::ElementAt(cell->Chromosomes, 0)->Position) +
-             gcnew Vec3(Enumerable::ElementAt(cell->Chromosomes, 1)->Position)) / 2;
+      pos = (Enumerable::ElementAt(cell->Chromosomes, 0)->Position +
+             Enumerable::ElementAt(cell->Chromosomes, 1)->Position) / 2;
+      isFirst = false;
     }
     else
     {
-      auto pos1 = gcnew Vec3(Enumerable::ElementAt(cell->Chromosomes, 0)->Position);
-      auto pos2 = gcnew Vec3(Enumerable::ElementAt(cell->Chromosomes, 1)->Position);
+      auto pos1 = Enumerable::ElementAt(cell->Chromosomes, 0)->Position;
+      auto pos2 = Enumerable::ElementAt(cell->Chromosomes, 1)->Position;
       auto newPos = (pos1 + pos2) / 2;
 
-      auto cEps = (newPos - pos)->Length;
+      auto cEps = (newPos + (-pos)).Length();
       if (cEps > eps)
       { return "The frozen coordinate option is not working properly"; }
     }
@@ -110,8 +113,8 @@ static inline String ^MovementYZChecker(TimeStream ^ts, Object ^epsObj)
     auto cell = ts->Current->Cell;
     auto chr1 = Enumerable::ElementAt(cell->Chromosomes, 0);
     auto chr2 = Enumerable::ElementAt(cell->Chromosomes, 1);
-    Vec3 ^pos = (gcnew Vec3(chr1->Position) + gcnew Vec3(chr2->Position)) / 2;
-    if (Math::Abs(pos->x) > eps)
+    Vector3 pos = (chr1->Position + chr2->Position) / 2;
+    if (Math::Abs(pos.X) > eps)
     { return "X-movement detected"; }
   }
 

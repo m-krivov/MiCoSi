@@ -28,18 +28,18 @@ TEST(Props, Spelling)
 {
   cli::array<String ^> ^correctProps = gcnew cli::array<String ^>
   {
-    //Spaces at the start, commented lines.
+    // Spaces at the start, commented lines
     "  N_MT_Total=150" + Environment::NewLine +
     "   Spring_Brake_Type=1" + Environment::NewLine +
     "   #N_Cr_Total=-1" + Environment::NewLine +
     "#Spring_Brake_MTs=-1" + Environment::NewLine,
         
-    //Spaces everywhere.
+    // Spaces everywhere
     "  K_On   =  2.0  " + Environment::NewLine +
     "   K_Off  = 2.0  " + Environment::NewLine +
     "Dt  =0.2 ",
 
-    //Capital and lower letters.
+    // Capital and lower letters
     " k_on = 2.0  " + Environment::NewLine +
     " K_OFF  = 2.0  " + Environment::NewLine +
     " dT = 0.2 " + Environment::NewLine,
@@ -58,22 +58,22 @@ TEST(Props, Spelling)
 
   cli::array<String ^> ^wrongProps = gcnew cli::array<String ^>
   {
-    //No '='.
+    // Missed '='
     "N_MT_Total 150" + Environment::NewLine,
 
-    //Commented '='.
+    // Commented '='
     "N_MT_Total#=150" + Environment::NewLine,
 
-    //Wrong symbols after parameter's value.
+    // Wrong symbols after parameter's value
     "N_MT_Total=150 //setting 150 MTs for each pole",
 
-    //Wrong value.
+    // Wrong value
     "N_MT_Total=150.0" + Environment::NewLine,
 
-    //Another wrong value (comma instead of dot).
+    // Another wrong value (comma instead of dot)
     "T_End=150,0" + Environment::NewLine,
 
-    //Unknown parameter.
+    // Unknown parameter
     "T_Start=10" + Environment::NewLine
   };
 
@@ -86,7 +86,7 @@ TEST(Props, Spelling)
 
 TEST(Props, ParameterImpact)
 {
-  //Changing values - multiplying them by two.
+  // Changing values - multiplying them by two
   auto config = gcnew SimParams();
   for each (auto param in Enum::GetValues(SimParameter::Double::typeid))
   {
@@ -101,8 +101,9 @@ TEST(Props, ParameterImpact)
   config[SimParameter::Int::Spring_Type] = SimParams::GetDefaultValue(SimParameter::Int::Spring_Type) == 0 ? 1 : 0;
   config[SimParameter::Int::Frozen_Coords] = SimParams::GetDefaultValue(SimParameter::Int::Frozen_Coords) == 0 ? 1 : 0;
   config[SimParameter::Int::MT_Wrapping] = SimParams::GetDefaultValue(SimParameter::Int::MT_Wrapping) == 0 ? 1 : 0;
+  config[SimParameter::Int::MT_Lateral_Attachments] = SimParams::GetDefaultValue(SimParameter::Int::MT_Lateral_Attachments) == 0 ? 1 : 0;
 
-  //Launching simulation, getting copy of the used parameters.
+  // Launching simulation, getting copy of the used parameters.
   SimParams ^usedConfig = nullptr;
   TimeStream ^ts = nullptr;
   try
@@ -124,7 +125,7 @@ TEST(Props, ParameterImpact)
     Helper::ClearUpTestDirectory();
   }
 
-  //Comparing all values. Expecting the 100% matching.
+  // Comparing all values. Expecting the 100% matching.
   for each (auto param in Enum::GetValues(SimParameter::Double::typeid))
   {
     auto p = safe_cast<SimParameter::Double>(param);

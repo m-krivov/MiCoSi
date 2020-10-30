@@ -11,14 +11,16 @@ namespace Mitosis
     public:
       enum class Int
       {
-        N_MT_Total           = ::SimParameter::Int::N_MT_Total,
-        N_Cr_Total           = ::SimParameter::Int::N_Cr_Total,
-        Spring_Brake_Type    = ::SimParameter::Int::Spring_Brake_Type,
-        Spring_Brake_MTs     = ::SimParameter::Int::Spring_Brake_MTs,
-        N_Nods               = ::SimParameter::Int::N_Nods,
-        Spring_Type          = ::SimParameter::Int::Spring_Type,
-        Frozen_Coords        = ::SimParameter::Int::Frozen_Coords,
-        MT_Wrapping          = ::SimParameter::Int::MT_Wrapping
+        N_MT_Total                = ::SimParameter::Int::N_MT_Total,
+        N_Cr_Total                = ::SimParameter::Int::N_Cr_Total,
+        Spring_Brake_Type         = ::SimParameter::Int::Spring_Brake_Type,
+        Spring_Brake_MTs          = ::SimParameter::Int::Spring_Brake_MTs,
+        N_Nods                    = ::SimParameter::Int::N_Nods,
+        Spring_Type               = ::SimParameter::Int::Spring_Type,
+        Frozen_Coords             = ::SimParameter::Int::Frozen_Coords,
+        MT_Wrapping               = ::SimParameter::Int::MT_Wrapping,
+        MT_Lateral_Attachments    = ::SimParameter::Int::MT_Lateral_Attachments,
+        N_KMT_Max                 = ::SimParameter::Int::N_KMT_Max
       };
 
       enum class Double

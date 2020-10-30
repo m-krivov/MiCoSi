@@ -13,7 +13,7 @@
 // For example, forces move chromosomes, MTs bind kinetochore, etc
 #include "Tier2/BindTests.h"
 #include "Tier2/CollisionTests.h"
-#include "Tier2/CudaTests.h"
+//#include "Tier2/CudaTests.h"
 #include "Tier2/ForceTests.h"
 #include "Tier2/KinetochoreTests.h"
 #include "Tier2/MovementTests.h"

@@ -20,8 +20,6 @@ class Chromosome
   public:
     Chromosome(uint32_t ID, const ICellObjectProvider *objects, const CellData *data);
 
-    // Basic properties.
-
     inline uint32_t ID() const
     { return _ID; }
 
@@ -36,8 +34,4 @@ class Chromosome
 
     inline const mat3x3r Orientation() const
     { real *p = _arr_orient + _ID * 9; return mat3x3r(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8]); }
-
-    // References to other objects.
-
-    std::vector<MT *> BoundMTs();
 };

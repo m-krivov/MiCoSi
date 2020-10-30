@@ -19,9 +19,9 @@ static inline String ^InitialSetupChecker(TimeStream ^ts, Object ^obj)
   {
     auto chr = Enumerable::ElementAt(cell->Chromosomes, i);
     auto str = String::Format("x:{0} y:{1} z:{2}",
-                              (int)(chr->Position->X * 1000 / normalizer),
-                              (int)(chr->Position->Y * 1000 / normalizer),
-                              (int)(chr->Position->Z * 1000 / normalizer));
+                              (int)(chr->Position.X * 1000 / normalizer),
+                              (int)(chr->Position.Y * 1000 / normalizer),
+                              (int)(chr->Position.Z * 1000 / normalizer));
     if (str != chrs[i]) { return "Initial state of chromosome was ignored"; }
   }
 
@@ -29,9 +29,9 @@ static inline String ^InitialSetupChecker(TimeStream ^ts, Object ^obj)
   {
     auto mt = Enumerable::ElementAt(cell->MTs, i);
     auto str = String::Format("x:{0} y:{1} z:{2} l:{3} p:{4} s:{5}",
-                              (int)(mt->Direction->X * 1000),
-                              (int)(mt->Direction->Y * 1000),
-                              (int)(mt->Direction->Z * 1000),
+                              (int)(mt->Direction.X * 1000),
+                              (int)(mt->Direction.Y * 1000),
+                              (int)(mt->Direction.Z * 1000),
                               (int)(mt->Length * 1000 / normalizer),
                               mt->Pole->Type.ToString(),
                               mt->State.ToString());

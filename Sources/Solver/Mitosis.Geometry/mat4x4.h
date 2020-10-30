@@ -143,11 +143,6 @@ class mat4x4
     {
       return (*this) * (1.0 / val);
     }
-
-    inline mat4x4<T> operator /(const mat4x4<T> &mat) const
-    {
-      return (*this) * MatrixTranspose(mat);
-    }
       
     inline const mat4x4<T> &operator =(const mat4x4<T> &mat)
     {

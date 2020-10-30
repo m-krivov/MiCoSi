@@ -1,5 +1,5 @@
 
-#include "ExpSimulator.h"
+#include "CpuSimulator.h"
 
 #include "ttgUtils.h"
 #include "Mitosis.Core/All.h"
@@ -7,7 +7,7 @@
 #include "Mitosis.Geometry/Geometry.h"
 
 //--------------------
-//--- ExpSimulator ---
+//--- CpuSimulator ---
 //--------------------
 
 static inline double GetStandardNormal(uint32_t &seed, int n = 12)
@@ -20,9 +20,9 @@ static inline double GetStandardNormal(uint32_t &seed, int n = 12)
   return sum;
 }
 
-void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
+void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
 {
-  ttg_time_stamp("ExpSimulator::DoMacroStep()");
+  ttg_time_stamp("CpuSimulator::DoMacroStep()");
   real r_cell          = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
   real dt              = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Dt, true);
   real A               = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Const_A, true);
@@ -38,8 +38,13 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
   real v_dep           = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::V_Dep, true);
   bool moving_spring   = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Type) == 1;
   bool move_non_broken = !GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Frozen_Coords);
-  bool mt_wrapping     = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::MT_Wrapping);
+  bool mt_wrapping     = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::MT_Wrapping) != 0;
   real cr_spring_k     = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Spring_K, true);
+
+  CellOps cellOps(cell);
+  auto kmts = cellOps.ExtractKMTs();
+  
+  Geometry geom(r_cell * (real)1e-5f);
   const std::vector<Chromosome *> &chrs = cell->Chromosomes();
   for (int cri = 0; cri < chrs.size(); cri += (1 + !cell->AreSpringsBroken()))
   {
@@ -60,13 +65,14 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
     }
     bool move_flag;
     if (cell->AreSpringsBroken())
-      move_flag = !crs[0]->BoundMTs().empty();
+    { move_flag = !kmts[crs[0]->ID()].empty(); }
     else
-      move_flag = move_non_broken && (!crs[0]->BoundMTs().empty() || !crs[1]->BoundMTs().empty());
+    { move_flag = move_non_broken && (!kmts[crs[0]->ID()].empty() || !kmts[crs[0]->ID()].empty()); }
+
     for (int pairI = 0; pairI < 1 + !cell->AreSpringsBroken(); pairI++)
     {
       Chromosome *cr = crs[pairI];
-      auto boundMTs = cr->BoundMTs();
+      const auto &boundMTs = kmts[cr->ID()];
       for (auto it = boundMTs.begin(); it != boundMTs.end(); it++)
       {
         MT *mt = *it;
@@ -93,7 +99,7 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
             vec3r pole_proj   = pole + ortZ * DotProduct(ortZ, chr_pos - pole);
 
             // Intersection check.
-            if (Geometry::Distance(chr_pos, Geometry::Segment(mt_end_proj, pole_proj)) > cr_kin_r * (real)0.99)
+            if (geom.Distance(chr_pos, Geometry::Segment(mt_end_proj, pole_proj)) > cr_kin_r * (real)0.99)
             {
               force_point = mt->EndPoint();
             }
@@ -132,10 +138,10 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
               }
 
               // Selecting the closed variant.
-              double dist1 = Geometry::ArcLength(chr_pos, cr_kin_r, mt_end_proj, p1);
+              double dist1 = geom.ArcLength(chr_pos, cr_kin_r, mt_end_proj, p1);
               dist1 = std::min(dist1, (real)PI * cr_kin_r - dist1 + 2 * cr_kin_r);
               dist1 = (p1 - pole_proj).GetLength() + dist1;
-              double dist2 = Geometry::ArcLength(chr_pos, cr_kin_r, mt_end_proj, p2);
+              double dist2 = geom.ArcLength(chr_pos, cr_kin_r, mt_end_proj, p2);
               dist2 = std::min(dist2, (real)PI * cr_kin_r - dist2 + 2 * cr_kin_r);
               dist2 = (p2 - pole_proj).GetLength() + dist2;
               force_point = dist1 < dist2 ? p1 : p2;
@@ -193,6 +199,7 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
       }
     }
     bool badFlag = false;
+
     // Normalizing matrix
     for (int i = 0; !badFlag && i < 6; i++)
     {
@@ -210,8 +217,8 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
         badFlag = true;
       }
     }
-    // Solving
-    // Method of rotations
+
+    // Solve using method of rotations
     // Move forward
     for (int line = 0; !badFlag && line < 5; line++)
     {
@@ -309,7 +316,7 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
         {
           Chromosome *cr = crs[i];
           mat3x3r chrOrient = (mat3x3r)cr->Orientation();
-          auto boundMTs = cr->BoundMTs();
+          const auto &boundMTs = kmts[cr->ID()];
           for (auto it = boundMTs.begin(); it != boundMTs.end(); it++)
           {
             MT *mt = *it;
@@ -346,7 +353,7 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
         Chromosome *cr = crs[i];
         vec3r springAxis = ((mat3x3r)cr->Orientation() * vec3r(1.0, 0.0, 0.0)).Normalize();
         cr->Position() = center + springAxis * (newLen / 2);
-        auto boundMTs = cr->BoundMTs();
+        const auto &boundMTs = kmts[cr->ID()];
         for (auto it = boundMTs.begin(); it != boundMTs.end(); it++)
         {
           MT *mt = *it;
@@ -391,10 +398,10 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
       mat3x3r orient = rotate * cr->Orientation();
       cr->Orientation() = orient;
 
-      // Setting bound MTs.
+      // Updating bound MTs
       vec3r ort = (orient * vec3r((real)0.0, (real)1.0, (real)0.0)).Normalize();
       vec3r springOffset = (vec3r)cr->Position() - (rotatePoint + trans);
-      auto boundMTs = cr->BoundMTs();
+      const auto &boundMTs = kmts[cr->ID()];
       for (auto it = boundMTs.begin(); it != boundMTs.end(); it++)
       {
         MT *mt = *it;
@@ -417,32 +424,40 @@ void ExpSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
       }
     }
   }
-  ttg_time_stamp("ExpSimulator::DoMacroStep()");
+  ttg_time_stamp("CpuSimulator::DoMacroStep()");
 }
 
-void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
+void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
 {
-  ttg_time_stamp("ExpSimulator::DoMicroStep()");
-  real dt          = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Dt, true);
-  real radius      = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
-  real v_pol       = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::V_Pol, true);
-  real v_dep       = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::V_Dep, true);
-  real f_cat       = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::F_Cat, true);
-  real f_res       = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::F_Res, true);
-  real cr_hand_r   = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Hand_D, true) / 2;
-  real cr_kin_r    = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_D, true) / 2;
-  real cr_kin_cosa = (real)std::cos(GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_Angle, true) / 2);
-  real cr_l        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_L, true);
-  real cr_kin_l    = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_L, true);
-  real k_on        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::K_On, true);
-  real k_off       = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::K_Off, true);
-  real cr_hand_l   = (cr_l - cr_kin_l) / 2;
-  int wi           = -1;
+  ttg_time_stamp("CpuSimulator::DoMicroStep()");
+  real r_cell        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
+  real dt            = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Dt, true);
+  real radius        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
+  real v_pol         = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::V_Pol, true);
+  real v_dep         = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::V_Dep, true);
+  real f_cat         = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::F_Cat, true);
+  real f_res         = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::F_Res, true);
+  real cr_hand_r     = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Hand_D, true) / 2;
+  real cr_kin_r      = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_D, true) / 2;
+  real cr_kin_cosa   = (real)std::cos(GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_Angle, true) / 2);
+  real cr_l          = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_L, true);
+  real cr_kin_l      = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Cr_Kin_L, true);
+  real k_on          = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::K_On, true);
+  real k_off         = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::K_Off, true);
+  bool mt_lateral    = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::MT_Lateral_Attachments) != 0;
+  int n_kmt_max      = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::N_KMT_Max);
+  real cr_hand_l     = (cr_l - cr_kin_l) / 2;
+  int wi             = -1;
+
+  Geometry geom(r_cell * (real)1e-5f);
+  CellOps ops(cell);
+
+  auto kmts = ops.CountKMTs();
   const std::vector<MT *> &mts = cell->MTs();
   for (int i = 0; i < mts.size(); i++)
   {
     MT *mt = mts[i];
-    if (mt->BoundChromosome() == NULL)
+    if (mt->BoundChromosome() == nullptr)
     {
       if (mt->State() == MTState::Polymerization)
       {
@@ -469,6 +484,7 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
           }
         }
       }
+
       vec3r beg = mt->GetPole()->Position();
       vec3r dir = (vec3r)mt->Direction();
       real len = mt->Length();
@@ -481,6 +497,7 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
           mt->State() = MTState::Depolymerization;
         }
       }
+
       vec3r interPoint;
       const std::vector<Chromosome *> &chrs = cell->Chromosomes();
       if(mt->State() == MTState::Polymerization)
@@ -503,10 +520,10 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
           vec3r handBeg = (vec3r)cr->Position() + ortY * (real)(cr_kin_l / 2);
           vec3r handEnd = (vec3r)cr->Position() + ortY * (real)(cr_l / 2);
 
-          if (Geometry::AreIntersected(seg, Geometry::SemiTube(handBeg, handEnd, plR2), interPoint) ||
-            Geometry::AreIntersected(seg, Geometry::Rectangle(handBeg - plR1, plR1 * 2, handEnd - handBeg), interPoint) ||
-            Geometry::AreIntersected(seg, Geometry::SemiCircle(handBeg, plR1, plR2), interPoint) ||
-            Geometry::AreIntersected(seg, Geometry::SemiCircle(handEnd, plR1, plR2), interPoint))
+          if (geom.AreIntersected(seg, Geometry::SemiTube(handBeg, handEnd, plR2), interPoint) ||
+              geom.AreIntersected(seg, Geometry::Rectangle(handBeg - plR1, plR1 * 2, handEnd - handBeg), interPoint) ||
+              geom.AreIntersected(seg, Geometry::SemiCircle(handBeg, plR1, plR2), interPoint) ||
+              geom.AreIntersected(seg, Geometry::SemiCircle(handEnd, plR1, plR2), interPoint))
           {
             intersects = true;
             break;
@@ -515,31 +532,33 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
           // Lower hand
           handBeg = (vec3r)cr->Position() + ortY * (real)(-cr_kin_l / 2);
           handEnd = (vec3r)cr->Position() + ortY * (real)(-cr_l / 2);
-          if (Geometry::AreIntersected(seg, Geometry::SemiTube(handBeg, handEnd, plR2), interPoint) ||
-            Geometry::AreIntersected(seg, Geometry::Rectangle(handBeg - plR1, plR1 * 2, handEnd - handBeg), interPoint) ||
-            Geometry::AreIntersected(seg, Geometry::SemiCircle(handBeg, plR1, plR2), interPoint) ||
-            Geometry::AreIntersected(seg, Geometry::SemiCircle(handEnd, plR1, plR2), interPoint))
+          if (geom.AreIntersected(seg, Geometry::SemiTube(handBeg, handEnd, plR2), interPoint) ||
+              geom.AreIntersected(seg, Geometry::Rectangle(handBeg - plR1, plR1 * 2, handEnd - handBeg), interPoint) ||
+              geom.AreIntersected(seg, Geometry::SemiCircle(handBeg, plR1, plR2), interPoint) ||
+              geom.AreIntersected(seg, Geometry::SemiCircle(handEnd, plR1, plR2), interPoint))
           {
             intersects = true;
             break;
           }
 
           // Kinetchore back plane.
-          if (Geometry::AreIntersected(seg,
-                         Geometry::Rectangle(handBeg - ortZ * cr_kin_r,
-                                   ortZ * (2 * cr_kin_r),
-                                   ortY * cr_kin_l),
-                         interPoint))
+          if (geom.AreIntersected(seg,
+                                  Geometry::Rectangle(handBeg - ortZ * cr_kin_r,
+                                                      ortZ * (2 * cr_kin_r),
+                                                      ortY * cr_kin_l),
+                                  interPoint))
           {
             intersects = true;
             break;
           }
         }
+
         if (intersects)
         {
           mt->State() = MTState::Depolymerization;
         }
       }
+
       // Intersect with kinetochore (e.g. semi-cylinder)
       int minKinIdx = -1;
       real minKinLen = mt->Length();
@@ -552,16 +571,16 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
         vec3r plNorm = ortX * cr_kin_r;
         vec3r kinBeg = (vec3r)cr->Position() + chrOrient * vec3r((real)0, (real)(-cr_kin_l / 2), (real)0);
         vec3r kinEnd = (vec3r)cr->Position() + chrOrient * vec3r((real)0, (real)(cr_kin_l / 2), (real)0);
-        if (Geometry::AreIntersected(Geometry::Segment(beg, end),
-                       Geometry::SemiTube(kinBeg, kinEnd, plNorm),
-                       interPoint))
+        if (geom.AreIntersected(Geometry::Segment(beg, end),
+                                Geometry::SemiTube(kinBeg, kinEnd, plNorm),
+                                interPoint))
         {
-          // Collided, but we need to check the angle as well.
+          // Collided, but we need to check the angle as well
           vec3r dp = interPoint - kinBeg;
           dp = dp - ortY * DotProduct(dp, ortY);
           
           if (DotProduct(dp, ortX) >= cr_kin_cosa * cr_kin_r &&
-            (interPoint - beg).GetLength() <= minKinLen)
+              (interPoint - beg).GetLength() <= minKinLen)
           {
             // Ok, MT can be attached.
             minKinIdx = j;
@@ -570,11 +589,13 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
           mt->State() = MTState::Depolymerization;
         }
       }
-      if(minKinIdx != -1)
+      if (minKinIdx != -1)
       {
-        if (Random::NextReal(seed) < k_on * dt)
+        if (kmts[minKinIdx] < n_kmt_max &&
+            Random::NextReal(seed) < k_on * dt)
         {
           mt->Bind(chrs[minKinIdx]);
+          kmts[minKinIdx] += 1;
         }
         mt->Length() = minKinLen;
       }
@@ -586,16 +607,17 @@ void ExpSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
         // Detach MT from chromosome
         Chromosome *cr = mt->BoundChromosome();
         mt->UnBind();
+        kmts[cr->ID()] -= 1;
         mt->State() = MTState::Depolymerization;
       }
     }
   }
-  ttg_time_stamp("ExpSimulator::DoMicroStep()");
+  ttg_time_stamp("CpuSimulator::DoMicroStep()");
 }
 
-void ExpSimulator::DoPoleUpdatingStep(Cell *cell, uint32_t &seed, IPoleUpdater *updater, double time)
+void CpuSimulator::DoPoleUpdatingStep(Cell *cell, uint32_t &seed, IPoleUpdater *updater, double time)
 {
-  ttg_time_stamp("ExpSimulator::DoPoleUpdatingStep()");
+  ttg_time_stamp("CpuSimulator::DoPoleUpdatingStep()");
   real dt        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Dt);
   vec3r oldLeft  = (vec3r)cell->GetPole(PoleType::Left)->Position();
   vec3r oldRight = (vec3r)cell->GetPole(PoleType::Right)->Position();
@@ -620,28 +642,30 @@ void ExpSimulator::DoPoleUpdatingStep(Cell *cell, uint32_t &seed, IPoleUpdater *
       }
     }
   }
-  ttg_time_stamp("ExpSimulator::DoPoleUpdatingStep()");
+  ttg_time_stamp("CpuSimulator::DoPoleUpdatingStep()");
 }
 
-void ExpSimulator::DoSpringBreakingStep(Cell *cell, uint32_t &seed)
+void CpuSimulator::DoSpringBreakingStep(Cell *cell, uint32_t &seed)
 {
-  ttg_time_stamp("ExpSimulator::DoSpringBreakingStep()");
+  ttg_time_stamp("CpuSimulator::DoSpringBreakingStep()");
   if(cell->Chromosomes().size() == 0)
   {
-    ttg_time_stamp("ExpSimulator::DoSpringBreakingStep()");
+    ttg_time_stamp("CpuSimulator::DoSpringBreakingStep()");
     return;
   }
   if (!cell->AreSpringsBroken())
   {
+    CellOps cellOps(cell);
+    auto kmts = cellOps.ExtractKMTs();
+
     if (GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Brake_Type) == 1)
     {
       int minCount = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Brake_MTs) * 2;
       const std::vector<Chromosome *> &chrs = cell->Chromosomes();
       for (size_t i = 0; i < chrs.size(); i++)
       {
-        Chromosome *cr = chrs[i];
-        if (minCount > cr->BoundMTs().size())
-          minCount = (int)cr->BoundMTs().size();
+        if (minCount > kmts[i].size())
+        { minCount = (int)kmts[i].size(); }
       }
       if (minCount >= GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Brake_MTs))
         cell->SetSpringFlag(true);
@@ -655,12 +679,9 @@ void ExpSimulator::DoSpringBreakingStep(Cell *cell, uint32_t &seed)
       {
         Chromosome *cr = chrs[i];
         vec3r curForce(0, 0, 0);
-        auto boundMTs = cr->BoundMTs();
-        for (auto it = boundMTs.begin(); it != boundMTs.end(); it++)
-        {
-          MT *mt = *it;
-          curForce = curForce + ((mt->GetPole()->Position() - cr->Position()).Normalize() * const_a);
-        }
+        for (auto mt : kmts[i])
+        { curForce = curForce + ((mt->GetPole()->Position() - cr->Position()).Normalize() * const_a); }
+
         real curForceMod = curForce.GetLength();
         if (minForce > curForceMod)
           minForce = curForceMod;
@@ -669,5 +690,5 @@ void ExpSimulator::DoSpringBreakingStep(Cell *cell, uint32_t &seed)
         cell->SetSpringFlag(true);
     }
   }
-  ttg_time_stamp("ExpSimulator::DoSpringBreakingStep()");
+  ttg_time_stamp("CpuSimulator::DoSpringBreakingStep()");
 }
