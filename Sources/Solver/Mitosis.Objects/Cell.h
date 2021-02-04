@@ -1,9 +1,11 @@
 
 #pragma once
+#include "Mitosis.Core/Defs.h"
+
+#include "Mitosis.Core/Random.h"
 
 #include "Interfaces.h"
 #include "CellData.h"
-
 #include "Pole.h"
 
 // Object-oriented wrapper that describes the whole cell
@@ -41,9 +43,9 @@ class Cell : public ICell, public IClonnable, private ICellObjectProvider
     void CreateObjects(CellData *data);
 
   public:
-    Cell(ICellInitializer *initializer, IPoleUpdater *updater, uint32_t &initializationSeed);
+    Cell(ICellInitializer *initializer, IPoleUpdater *updater, Random::State &state);
     Cell(Cell &) = delete;
-    void operator =(Cell &) = delete;
+    Cell &operator =(Cell &) = delete;
 
     virtual bool AreSpringsBroken() const
     { return *_springs_broken_flag != 0; }
@@ -51,22 +53,22 @@ class Cell : public ICell, public IClonnable, private ICellObjectProvider
     virtual void SetSpringFlag(bool broken)
     { *_springs_broken_flag = broken ? 1 : 0; }
 
-    virtual Pole *GetPole(PoleType::Type pole)
+    virtual Pole *GetPole(PoleType pole) const override
     { return pole == PoleType::Left ? _poles[(uint32_t)PoleType::Left] : _poles[(uint32_t)PoleType::Right]; }
 
-    virtual const std::vector<MT *> &MTs() const
+    virtual const std::vector<MT *> &MTs() const override
     { return _MTs; }
 
-    virtual const std::vector<Chromosome *> &Chromosomes() const
+    virtual const std::vector<Chromosome *> &Chromosomes() const override
     { return _chromosomes; }
 
-    virtual const std::vector<ChromosomePair *> &ChromosomePairs() const
+    virtual const std::vector<ChromosomePair *> &ChromosomePairs() const override
     { return _chromosomePairs; }
 
-    inline const CellData &Data() const
+    const CellData &Data() const
     { return *_data.get(); }
 
-    virtual IClonnable *Clone();
+    virtual IClonnable *Clone() const override;
 
     ~Cell();
 };

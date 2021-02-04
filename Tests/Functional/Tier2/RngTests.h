@@ -2,6 +2,63 @@
 #include "Defs.h"
 #include "Helpers.h"
 
+TEST(RNG, UserSeed)
+{
+  Helper::PrepareTestDirectory();
+  
+  cli::array<IntPtr> ^data = gcnew cli::array<IntPtr>{ (IntPtr)nullptr, (IntPtr)nullptr, (IntPtr)nullptr };
+  try
+  {
+    TimeStream ^ts = nullptr;
+    auto parameters = gcnew LaunchParameters();
+    parameters->Config = gcnew SimParams();
+    parameters->Args->Mode = LaunchMode::New;
+
+    // Ensure that seed is stored
+    parameters->Config[SimParameter::Int::N_Cr_Total] = 1;
+    parameters->Config[SimParameter::Double::T_End] = 2.0;
+    parameters->Args->UserSeed = 100500;
+    try
+    {
+      ts = Helper::LaunchAndOpen(parameters);
+      ASSERT_EQ(ts->UserSeed, 100500);
+    }
+    finally { if (ts != nullptr) { delete ts; ts = nullptr; } }
+
+    // Ensure that seeds are not ignored
+    parameters->Config[SimParameter::Int::N_Cr_Total] = 3;
+    parameters->Config[SimParameter::Double::T_End] = 10.0;
+    
+    for (int i = 0; i < data->Length; i++)
+    {
+      parameters->Args->UserSeed = (i == 2 ? 200 : 100);
+      try
+      {
+        ts = Helper::LaunchAndOpen(parameters);
+        ts->MoveTo(ts->LayerCount - 1);
+        data[i] = Helper::CopyData(ts->Current->Cell);
+      }
+      finally { if (ts != nullptr) { delete ts; ts = nullptr; } }
+    }
+
+    if (!Helper::CompareData(data[0], data[1]))
+    { FAIL() << "The same user seed provides different results"; }
+
+    if (Helper::CompareData(data[0], data[2]))
+    { FAIL() << "Different user seeds provide the same results"; }
+  }
+  catch (Exception ^ex)
+  { FAIL() << StringToString(ex->Message); }
+  finally
+  {
+    for each (auto r in data)
+    {
+      if (r != (IntPtr)nullptr)
+      { Helper::ReleaseData(r); }
+    }
+    Helper::ClearUpTestDirectory();
+  }
+}
 
 TEST(RNG, StartRestart)
 {
@@ -18,7 +75,7 @@ TEST(RNG, StartRestart)
     parameters->Config[SimParameter::Double::T_End] = 10.5;
     parameters->Args->Mode = LaunchMode::New;
 
-    //Getting data for original launch.
+    // Get data for original launch
     TimeStream ^ts = nullptr;
     try
     {
@@ -28,7 +85,7 @@ TEST(RNG, StartRestart)
     }
     finally { if (ts != nullptr) { delete ts; } }
 
-    //Getting data for restarted launch.
+    // Get data for restarted launch
     parameters->Args->Mode = LaunchMode::Restart;
     ts = nullptr;
     try
@@ -39,7 +96,7 @@ TEST(RNG, StartRestart)
     }
     finally { if (ts != nullptr) { delete ts; } }
 
-    //Checking.
+    // Check
     if (!Helper::CompareData(started, restarted))
     { FAIL() << "Not equal results"; }
   }
@@ -47,8 +104,8 @@ TEST(RNG, StartRestart)
   { FAIL() << StringToString(ex->Message); }
   finally
   {
-    if (started != (IntPtr)nullptr) Helper::ReleaseData(started);
-    if (restarted != (IntPtr)nullptr) Helper::ReleaseData(restarted);
+    if (started != (IntPtr)nullptr) { Helper::ReleaseData(started); }
+    if (restarted != (IntPtr)nullptr) { Helper::ReleaseData(restarted); }
     Helper::ClearUpTestDirectory();
   }
 }
@@ -68,7 +125,7 @@ TEST(RNG, StartContinue)
     parameters->Config[SimParameter::Double::T_End] = 1.0;
     parameters->Args->Mode = LaunchMode::New;
 
-    //Getting data for single launch.
+    // Get data for single launch
     TimeStream ^ts = nullptr;
     try
     {
@@ -78,7 +135,7 @@ TEST(RNG, StartContinue)
     }
     finally { if (ts != nullptr) delete ts; }
         
-    //Getting data for multiple launches.
+    // Get data for multiple launches
     parameters->Config[SimParameter::Double::T_End] = 0.5;
     parameters->Args->Mode = LaunchMode::Restart;
     delete Helper::LaunchAndOpen(parameters);
@@ -99,7 +156,7 @@ TEST(RNG, StartContinue)
     }
     finally { if (ts != nullptr) { delete ts; } }
 
-    //Checking.
+    // Check
     if (!Helper::CompareData(started, continued))
     { FAIL() << "Not equal results"; }
   }
@@ -107,8 +164,8 @@ TEST(RNG, StartContinue)
   { FAIL() << StringToString(ex->Message); }
   finally
   {
-    if (started != (IntPtr)nullptr) Helper::ReleaseData(started);
-    if (continued != (IntPtr)nullptr) Helper::ReleaseData(continued);
+    if (started != (IntPtr)nullptr) { Helper::ReleaseData(started); }
+    if (continued != (IntPtr)nullptr) { Helper::ReleaseData(continued); }
     Helper::ClearUpTestDirectory();
   }
 }

@@ -13,7 +13,7 @@ namespace Mitosis
                      public System::Collections::IEnumerator
   {
     private:
-      ::TimeStream *_stream;
+      std::unique_ptr<::TimeStream> *_stream;
       Cell ^_cachedCell;
 
       void Release()
@@ -32,14 +32,14 @@ namespace Mitosis
       }
 
     internal:
-      TimeStream(::TimeStream *stream)
+      TimeStream(std::unique_ptr<::TimeStream> *stream)
       {
         _stream = stream;
         _cachedCell = nullptr;
       }
 
       ::TimeStream *GetObject()
-      { return _stream; }
+      { return _stream->get(); }
 
     public:
       static TimeStream ^Open(System::String ^cellFile)
@@ -47,9 +47,10 @@ namespace Mitosis
         try
         {
           System::IntPtr wd = System::Runtime::InteropServices::Marshal::StringToHGlobalAnsi(cellFile);
-          ::TimeStream *ts = ::TimeStream::Open((const char *)(void *)wd);
+          auto *ptr = new std::unique_ptr<::TimeStream>();
+          *ptr = ::TimeStream::Open((const char *)(void *)wd);
           System::Runtime::InteropServices::Marshal::FreeHGlobal(wd);
-          return gcnew TimeStream(ts);
+          return gcnew TimeStream(ptr);
         }
         catch (::VersionConflictException &ex)
         { throw gcnew VersionConflictException(&ex.CurrentVersion(), &ex.RequiredVersion()); }
@@ -62,18 +63,18 @@ namespace Mitosis
         int get()
         {
           try
-          { return (int)_stream->LayerCount(); }
+          { return (int)(*_stream)->LayerCount(); }
           catch (std::exception &ex)
           { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
         }
       }
 
-      property unsigned __int32 InitialRandSeed
+      property unsigned __int64 UserSeed
       {
-        unsigned __int32 get()
+        unsigned __int64 get()
         {
           try
-          { return _stream->InitialRandSeed(); }
+          { return (*_stream)->UserSeed(); }
           catch (std::exception &ex)
           { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
         }
@@ -85,13 +86,13 @@ namespace Mitosis
         {
           try
           {
-            ::TimeLayer layer = _stream->Current();
+            auto layer = (*_stream)->Current();
             if (_cachedCell == nullptr)
-            { _cachedCell = gcnew Cell(layer.GetCell()); }
+            { _cachedCell = gcnew Cell(&layer.GetCell()); }
 
             return gcnew TimeLayer(_cachedCell,
-                         gcnew SimParams(layer.GetSimParams(), false),
-                         layer.GetTime());
+                                   gcnew SimParams(layer.GetSimParams()),
+                                   layer.GetTime());
           }
           catch (std::exception &ex)
           { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
@@ -109,7 +110,7 @@ namespace Mitosis
         try
         {
           _cachedCell = nullptr;
-          _stream->Reset();
+          (*_stream)->Reset();
         }
         catch (std::exception &ex)
         { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
@@ -120,7 +121,7 @@ namespace Mitosis
         try
         {
           _cachedCell = nullptr;
-          _stream->MoveTo((size_t)layer);
+          (*_stream)->MoveTo((size_t)layer);
         }
         catch (std::exception &ex)
         { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
@@ -131,7 +132,7 @@ namespace Mitosis
         try
         {
           _cachedCell = nullptr;
-          return _stream->MoveNext();
+          return (*_stream)->MoveNext();
         }
         catch (std::exception &ex)
         { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
@@ -140,7 +141,7 @@ namespace Mitosis
       double GetLayerTime(int layerIndex)
       {
         try
-        { return _stream->GetLayerTime((size_t)layerIndex); }
+        { return (*_stream)->GetLayerTime((size_t)layerIndex); }
         catch (std::exception &ex)
         { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
       }

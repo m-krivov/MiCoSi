@@ -10,17 +10,17 @@
 //--- CpuSimulator ---
 //--------------------
 
-static inline double GetStandardNormal(uint32_t &seed, int n = 12)
+static inline double GetStandardNormal(Random::State &state, int n = 12)
 {
   double sum = 0;
   for (int i = 0; i < n; i++)
-    sum += (Random::NextReal(seed) - 0.5);
+    sum += (Random::NextReal(state) - 0.5);
   if (n != 12)
     sum /= sqrt((double)n / 12);
   return sum;
 }
 
-void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
+void CpuSimulator::DoMacroStep(Cell &cell, Random::State &state)
 {
   ttg_time_stamp("CpuSimulator::DoMacroStep()");
   real r_cell          = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
@@ -41,12 +41,12 @@ void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
   bool mt_wrapping     = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::MT_Wrapping) != 0;
   real cr_spring_k     = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Spring_K, true);
 
-  CellOps cellOps(cell);
+  CellOps cellOps(&cell);
   auto kmts = cellOps.ExtractKMTs();
   
   Geometry geom(r_cell * (real)1e-5f);
-  const std::vector<Chromosome *> &chrs = cell->Chromosomes();
-  for (int cri = 0; cri < chrs.size(); cri += (1 + !cell->AreSpringsBroken()))
+  const std::vector<Chromosome *> &chrs = cell.Chromosomes();
+  for (int cri = 0; cri < chrs.size(); cri += (1 + !cell.AreSpringsBroken()))
   {
     Chromosome *crs[2];
     crs[0] = chrs[cri];
@@ -64,12 +64,12 @@ void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
       mat[2 * i + 1][2 * i + 1] = -ieta;
     }
     bool move_flag;
-    if (cell->AreSpringsBroken())
+    if (cell.AreSpringsBroken())
     { move_flag = !kmts[crs[0]->ID()].empty(); }
     else
     { move_flag = move_non_broken && (!kmts[crs[0]->ID()].empty() || !kmts[crs[0]->ID()].empty()); }
 
-    for (int pairI = 0; pairI < 1 + !cell->AreSpringsBroken(); pairI++)
+    for (int pairI = 0; pairI < 1 + !cell.AreSpringsBroken(); pairI++)
     {
       Chromosome *cr = crs[pairI];
       const auto &boundMTs = kmts[cr->ID()];
@@ -293,17 +293,17 @@ void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
       if (move_flag)
       {
         V = vec3r(mat[0][6], mat[2][6], mat[4][6]);
-        if (!cell->AreSpringsBroken())
+        if (!cell.AreSpringsBroken())
         {
           // Need to project velocity on the plane orthogonal to Pole-Pole line. And poles can be located in the same point!
-          vec3r dir = (vec3r)cell->GetPole(PoleType::Left)->Position() - (vec3r)cell->GetPole(PoleType::Right)->Position();
+          vec3r dir = (vec3r)cell.GetPole(PoleType::Left)->Position() - (vec3r)cell.GetPole(PoleType::Right)->Position();
           real dir_len = dir.GetLength();
           V = dir_len > r_cell * 1e-5 ? (vec3r)(V - dir * DotProduct(V, dir / dir_len) / dir_len) : vec3r::ZERO;
 
         }
       }
     }
-    if (!cell->AreSpringsBroken())
+    if (!cell.AreSpringsBroken())
     {
       // Need to update spring length
       vec3r center = ((vec3r)crs[0]->Position() + (vec3r)crs[1]->Position()) / (real)2.0;
@@ -367,13 +367,13 @@ void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
       }
     }
     // Langevin's members
-    real rnd1 = (real)GetStandardNormal(seed);
-    real rnd2 = (real)GetStandardNormal(seed);
-    real rnd3 = (real)GetStandardNormal(seed);
+    real rnd1 = (real)GetStandardNormal(state);
+    real rnd2 = (real)GetStandardNormal(state);
+    real rnd3 = (real)GetStandardNormal(state);
     vec3r transAdd = vec3r(rnd1 * sqrt(2 * Dtrans * dt), rnd2 * sqrt(2 * Dtrans * dt), rnd3 * sqrt(2 * Dtrans * dt));
-    rnd1 = (real)GetStandardNormal(seed);
-    rnd2 = (real)GetStandardNormal(seed);
-    rnd3 = (real)GetStandardNormal(seed);
+    rnd1 = (real)GetStandardNormal(state);
+    rnd2 = (real)GetStandardNormal(state);
+    rnd3 = (real)GetStandardNormal(state);
     vec3r rotateAdd = vec3r(real(rnd1 * sqrt(2 * Drot * dt)), rnd2 * sqrt(2 * Drot * dt), rnd3 * sqrt(2 * Drot * dt));
     
     // Applying velocities and Langevin's members
@@ -382,14 +382,14 @@ void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
 
     //Updating chromosome states.
     vec3r rotatePoint = ((vec3r)crs[0]->Position() + (vec3r)crs[1]->Position()) / 2;
-    for (int i = 0; i < 1 + !cell->AreSpringsBroken(); i++)
+    for (int i = 0; i < 1 + !cell.AreSpringsBroken(); i++)
     {
       Chromosome *cr = crs[i];
       Chromosome *pairedCr = crs[1 - i];
 
       // Setting chromosome's position and orientation.
       vec3r prevPos = (vec3r)cr->Position();
-      if (cell->AreSpringsBroken())
+      if (cell.AreSpringsBroken())
       {
         rotatePoint = (vec3r)cr->Position();
       }
@@ -427,7 +427,7 @@ void CpuSimulator::DoMacroStep(Cell *cell, uint32_t &seed)
   ttg_time_stamp("CpuSimulator::DoMacroStep()");
 }
 
-void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
+void CpuSimulator::DoMicroStep(Cell &cell, Random::State &state)
 {
   ttg_time_stamp("CpuSimulator::DoMicroStep()");
   real r_cell        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
@@ -450,10 +450,10 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
   int wi             = -1;
 
   Geometry geom(r_cell * (real)1e-5f);
-  CellOps ops(cell);
+  CellOps ops(&cell);
 
   auto kmts = ops.CountKMTs();
-  const std::vector<MT *> &mts = cell->MTs();
+  const std::vector<MT *> &mts = cell.MTs();
   for (int i = 0; i < mts.size(); i++)
   {
     MT *mt = mts[i];
@@ -462,7 +462,7 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
       if (mt->State() == MTState::Polymerization)
       {
         mt->Length() += v_pol * dt;
-        if (Random::NextReal(seed) < f_cat * dt)
+        if (Random::NextReal(state) < f_cat * dt)
         {
           mt->State() = MTState::Depolymerization;
         }
@@ -470,13 +470,13 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
       else
       {
         mt->Length() = std::max((real)0, mt->Length() - v_dep * dt);
-        if (mt->Length() == (real)0 || Random::NextReal(seed) < f_res * dt)
+        if (mt->Length() == (real)0 || Random::NextReal(state) < f_res * dt)
         {
           mt->State() = MTState::Polymerization;
           if (mt->Length() == (real)0)
           {
-            double alpha = Random::NextReal(seed) * PI * 2;
-            real dx = Random::NextReal(seed) * (mt->GetPole()->Type() == PoleType::Left ? 1 : -1);
+            double alpha = Random::NextReal(state) * PI * 2;
+            real dx = Random::NextReal(state) * (mt->GetPole()->Type() == PoleType::Left ? 1 : -1);
             real dy = (real)(std::sqrt(1.0 - dx * dx) * std::cos(alpha));
             real dz = (real)(std::sqrt(1.0 - dx * dx) * std::sin(alpha));
             vec3r dir(dx, dy, dz);
@@ -499,7 +499,7 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
       }
 
       vec3r interPoint;
-      const std::vector<Chromosome *> &chrs = cell->Chromosomes();
+      const std::vector<Chromosome *> &chrs = cell.Chromosomes();
       if(mt->State() == MTState::Polymerization)
       {
         // Intersect with hands or plain side
@@ -592,7 +592,7 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
       if (minKinIdx != -1)
       {
         if (kmts[minKinIdx] < n_kmt_max &&
-            Random::NextReal(seed) < k_on * dt)
+            Random::NextReal(state) < k_on * dt)
         {
           mt->Bind(chrs[minKinIdx]);
           kmts[minKinIdx] += 1;
@@ -602,7 +602,7 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
     }
     else
     {
-      if (Random::NextReal(seed) < k_off * dt)
+      if (Random::NextReal(state) < k_off * dt)
       {
         // Detach MT from chromosome
         Chromosome *cr = mt->BoundChromosome();
@@ -615,20 +615,20 @@ void CpuSimulator::DoMicroStep(Cell *cell, uint32_t &seed)
   ttg_time_stamp("CpuSimulator::DoMicroStep()");
 }
 
-void CpuSimulator::DoPoleUpdatingStep(Cell *cell, uint32_t &seed, IPoleUpdater *updater, double time)
+void CpuSimulator::DoPoleUpdatingStep(Cell &cell, Random::State &state, IPoleUpdater *updater, double time)
 {
   ttg_time_stamp("CpuSimulator::DoPoleUpdatingStep()");
   real dt        = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Dt);
-  vec3r oldLeft  = (vec3r)cell->GetPole(PoleType::Left)->Position();
-  vec3r oldRight = (vec3r)cell->GetPole(PoleType::Right)->Position();
+  vec3r oldLeft  = (vec3r)cell.GetPole(PoleType::Left)->Position();
+  vec3r oldRight = (vec3r)cell.GetPole(PoleType::Right)->Position();
 
-  updater->MovePoles(cell->GetPole(PoleType::Left), cell->GetPole(PoleType::Right), (real)time + dt, seed);
-  if (oldLeft != cell->GetPole(PoleType::Left)->Position() ||
-    oldRight != cell->GetPole(PoleType::Right)->Position())
+  updater->MovePoles(cell.GetPole(PoleType::Left), cell.GetPole(PoleType::Right), (real)time + dt, state);
+  if (oldLeft != cell.GetPole(PoleType::Left)->Position() ||
+    oldRight != cell.GetPole(PoleType::Right)->Position())
   {
-    vec3r leftPoleOffset = (vec3r)cell->GetPole(PoleType::Left)->Position() - oldLeft;
-    vec3r rightPoleOffset = (vec3r)cell->GetPole(PoleType::Right)->Position() - oldRight;
-    const std::vector<MT *> &mts = cell->MTs();
+    vec3r leftPoleOffset = (vec3r)cell.GetPole(PoleType::Left)->Position() - oldLeft;
+    vec3r rightPoleOffset = (vec3r)cell.GetPole(PoleType::Right)->Position() - oldRight;
+    const std::vector<MT *> &mts = cell.MTs();
     for (size_t i = 0; i < mts.size(); i++)
     {
       if (mts[i]->BoundChromosome() != NULL)
@@ -645,36 +645,36 @@ void CpuSimulator::DoPoleUpdatingStep(Cell *cell, uint32_t &seed, IPoleUpdater *
   ttg_time_stamp("CpuSimulator::DoPoleUpdatingStep()");
 }
 
-void CpuSimulator::DoSpringBreakingStep(Cell *cell, uint32_t &seed)
+void CpuSimulator::DoSpringBreakingStep(Cell &cell, Random::State &state)
 {
   ttg_time_stamp("CpuSimulator::DoSpringBreakingStep()");
-  if(cell->Chromosomes().size() == 0)
+  if(cell.Chromosomes().size() == 0)
   {
     ttg_time_stamp("CpuSimulator::DoSpringBreakingStep()");
     return;
   }
-  if (!cell->AreSpringsBroken())
+  if (!cell.AreSpringsBroken())
   {
-    CellOps cellOps(cell);
+    CellOps cellOps(&cell);
     auto kmts = cellOps.ExtractKMTs();
 
     if (GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Brake_Type) == 1)
     {
       int minCount = GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Brake_MTs) * 2;
-      const std::vector<Chromosome *> &chrs = cell->Chromosomes();
+      const std::vector<Chromosome *> &chrs = cell.Chromosomes();
       for (size_t i = 0; i < chrs.size(); i++)
       {
         if (minCount > kmts[i].size())
         { minCount = (int)kmts[i].size(); }
       }
       if (minCount >= GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::Spring_Brake_MTs))
-        cell->SetSpringFlag(true);
+        cell.SetSpringFlag(true);
     }
     else
     {
       real minForce = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Spring_Brake_Force, true) * 2;
       real const_a  = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Const_A, true);
-      const std::vector<Chromosome *> &chrs = cell->Chromosomes();
+      const std::vector<Chromosome *> &chrs = cell.Chromosomes();
       for (size_t i = 0; i < chrs.size(); i++)
       {
         Chromosome *cr = chrs[i];
@@ -687,7 +687,7 @@ void CpuSimulator::DoSpringBreakingStep(Cell *cell, uint32_t &seed)
           minForce = curForceMod;
       }
       if (minForce >= GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Spring_Brake_Force, true))
-        cell->SetSpringFlag(true);
+        cell.SetSpringFlag(true);
     }
   }
   ttg_time_stamp("CpuSimulator::DoSpringBreakingStep()");

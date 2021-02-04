@@ -88,5 +88,9 @@ class CellStats
 class ICellStatsProvider
 {
   public:
+    virtual ~ICellStatsProvider() = default;
     virtual const std::vector<CellStats> &Stats() = 0;
+
+  protected:
+    ICellStatsProvider() = default;
 };

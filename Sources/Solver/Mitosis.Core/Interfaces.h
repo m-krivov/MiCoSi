@@ -7,10 +7,10 @@
 class IClonnable
 {
   public:
-    virtual IClonnable *Clone() = 0;
+    virtual IClonnable *Clone() const = 0;
 
     template <class T>
-    T *CloneTemplated()
+    T *CloneTemplated() const
     {
       IClonnable *res = Clone();
       T *tRes = dynamic_cast<T *>(res);

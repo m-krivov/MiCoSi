@@ -15,8 +15,8 @@ namespace Mitosis
 
     internal:
       TimeLayer(Cell ^cell,
-            SimParams ^simParams,
-            double time)
+                SimParams ^simParams,
+                double time)
       {
         _cell = cell;
         _simParams = simParams;

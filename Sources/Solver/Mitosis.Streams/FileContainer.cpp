@@ -460,12 +460,12 @@ size_t FileContainer::Formatter::ReadTable(FILE *f, std::vector<ChunkHeader> &ta
 //--- FileContainer ---
 //---------------------
 
-FILE *FileContainer::OpenFile(const char *filename, const char *opt)
+FILE *FileContainer::OpenFile(const std::string &filename, const char *opt)
 {
   FILE *f = NULL;
 
 #ifdef WIN32
-  if (fopen_s(&f, filename, opt) != 0)
+  if (fopen_s(&f, filename.c_str(), opt) != 0)
   {
     std::stringstream ss;
     ss << "Error at FileContainer::OpenFile() - cannot open \"";
@@ -531,7 +531,7 @@ FileContainer::~FileContainer()
   fclose(_file);
 }
 
-std::shared_ptr<FileContainer> FileContainer::Open(const char *filename)
+std::shared_ptr<FileContainer> FileContainer::Open(const std::string &filename)
 {
   FILE* f = OpenFile(filename, "r+b");
   try
@@ -553,8 +553,9 @@ std::shared_ptr<FileContainer> FileContainer::Open(const char *filename)
   }
 }
 
-bool FileContainer::ValidateChunk(FILE *f, uint64_t &newChunkStart, std::vector<ChunkHeader> &table, Cell* &cell,
-                  FrameExtractor fextr, ServiceExtractor sextr, CellExtractor cextr)
+bool FileContainer::ValidateChunk(FILE *f, uint64_t &newChunkStart, std::vector<ChunkHeader> &table,
+                                  std::unique_ptr<Cell> &cell,
+                                  FrameExtractor fextr, ServiceExtractor sextr, CellExtractor cextr)
 {
   try
   {
@@ -578,7 +579,7 @@ bool FileContainer::ValidateChunk(FILE *f, uint64_t &newChunkStart, std::vector<
     size_t count = 1;
     if(!table.size() && chunkType == ChunkType::Service && !cextr(metaData.get(), metaDataSize, binData.get(), binDataSize, cell))
       return false;
-    if(table.size() && chunkType == ChunkType::Frames && !fextr(metaData.get(), metaDataSize, binData.get(), binDataSize, cell, time, count))
+    if(table.size() && chunkType == ChunkType::Frames && !fextr(metaData.get(), metaDataSize, binData.get(), binDataSize, *cell, time, count))
       return false;
     if(table.size() && chunkType == ChunkType::Service && !sextr(metaData.get(), metaDataSize, binData.get(), binDataSize))
       return false;
@@ -592,11 +593,13 @@ bool FileContainer::ValidateChunk(FILE *f, uint64_t &newChunkStart, std::vector<
   }
 }
 
-std::shared_ptr<FileContainer> FileContainer::Repair(const char *filename,
-            FrameExtractor fextr, ServiceExtractor sextr, CellExtractor cextr)
+std::shared_ptr<FileContainer> FileContainer::Repair(const std::string &filename,
+                                                     FrameExtractor fextr,
+                                                     ServiceExtractor sextr,
+                                                     CellExtractor cextr)
 {
   FILE* f = NULL;
-  Cell* cell = NULL;
+  std::unique_ptr<Cell> cell;
   try
   {
     f = OpenFile(filename, "r+b");
@@ -607,9 +610,7 @@ std::shared_ptr<FileContainer> FileContainer::Repair(const char *filename,
     bool res = true;
     table.clear();
     while (res)
-      res = ValidateChunk(f, newChunkStart, table, cell, fextr, sextr, cextr);
-    if(cell != NULL)
-      delete cell;
+    { res = ValidateChunk(f, newChunkStart, table, cell, fextr, sextr, cextr); }
 #ifdef _WIN32
     errno_t err = _chsize_s(_fileno(f), newChunkStart);
     if(err != 0)
@@ -624,13 +625,11 @@ std::shared_ptr<FileContainer> FileContainer::Repair(const char *filename,
   {
     if (f != NULL)
       fclose(f);
-    if(cell != NULL)
-      delete cell;
     throw;
   }
 }
 
-std::shared_ptr<FileContainer> FileContainer::Create(const char *filename, uint64_t version)
+std::shared_ptr<FileContainer> FileContainer::Create(const std::string &filename, uint64_t version)
 {
   FILE *f = OpenFile(filename, "w+b");
   try

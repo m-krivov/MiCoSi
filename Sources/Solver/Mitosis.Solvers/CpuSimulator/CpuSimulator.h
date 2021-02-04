@@ -15,32 +15,32 @@ class CpuSimulator : public Simulator
 
     // Versions for debugging - can be called from other simulators
 
-    static void DoMacroStep(Cell *cell, uint32_t &seed);
+    static void DoMacroStep(Cell &cell, Random::State &state);
 
-    static void DoMicroStep(Cell *cell, uint32_t &seed);
+    static void DoMicroStep(Cell &cell, Random::State &state);
 
-    static void DoPoleUpdatingStep(Cell *cell, uint32_t &seed, IPoleUpdater *updater, double time);
+    static void DoPoleUpdatingStep(Cell &cell, Random::State &state, IPoleUpdater *updater, double time);
 
-    static void DoSpringBreakingStep(Cell *cell, uint32_t &seed);
+    static void DoSpringBreakingStep(Cell &cell, Random::State &state);
 
   private:
-    virtual void Bind(const std::vector<std::pair<Cell *, uint32_t *> > &cells);
+    virtual void Import(CellEnsemble &cells) override;
 
-    virtual void DoMacroStep(double time);
+    virtual void DoMacroStep(double time) override;
 
-    virtual void DoMicroStep(double time);
+    virtual void DoMicroStep(double time) override;
 
-    virtual void DoPoleUpdatingStep(double time);
+    virtual void DoPoleUpdatingStep(double time) override;
 
-    virtual void DoSpringBreakingStep(double time);
+    virtual void DoSpringBreakingStep(double time) override;
 
-    virtual void SynchronizeCells();
+    virtual const CellEnsemble &SynchronizeCells() override;
 
-    virtual void FormatStats(std::vector<CellStats> &stats);
+    virtual void FormatStats(std::vector<CellStats> &stats) override;
 
     int NumThreads() const { return std::max(1, std::min((int)_cells.size(), _omp_num_threads)); }
 
     int _omp_num_threads;
-    std::vector<std::pair<Cell *, uint32_t *> > _cells;
+    CellEnsemble _cells;
     std::unique_ptr<IPoleUpdater> _updater;
 };

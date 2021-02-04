@@ -17,53 +17,41 @@
 //--- SimulatorFactory ---
 //------------------------
 
-Simulator *SimulatorFactory::CreateInternal(const std::vector<std::pair<Cell *, uint32_t> > &cells,
-                                            double startTime, IPoleUpdater &poles,
-                                            const SimulatorConfig &config)
+std::unique_ptr<Simulator> SimulatorFactory::CreateInternal(Simulator::CellEnsemble &cells,
+                                                            double startTime, IPoleUpdater &poles,
+                                                            const SimulatorConfig &config)
 {
-  Simulator *res = NULL;
+  std::unique_ptr<Simulator> res;
 
-  try
+  if (config.Type() == SimulatorConfig::CPU)
   {
-    if (config.Type() == SimulatorConfig::CPU)
-    {
-      int cores = 0;
-      if (!config.HasDeviceNumber(cores))
-      { cores = 0; }
-      res = new CpuSimulator(poles, (size_t)cores);
-    }
-    else if (config.Type() == SimulatorConfig::CUDA)
-    {
+    int cores = 0;
+    if (!config.HasDeviceNumber(cores))
+    { cores = 0; }
+    res.reset(new CpuSimulator(poles, (size_t)cores));
+  }
+  else if (config.Type() == SimulatorConfig::CUDA)
+  {
 #ifndef NO_CUDA
-      res = new CudaSimulator(poles);
-      //res = new CudaSimulator2(poles);
+    res = new CudaSimulator(poles);
+    //res = new CudaSimulator2(poles);
 #else
-      throw std::runtime_error("You must recompile project with CUDA support in order to use CUDA solver");
+    throw std::runtime_error("you must recompile project with CUDA support in order to use CUDA solver");
 #endif
-    }
-    else
-    {
-      throw std::runtime_error("internal error, unknown enum value of 'config.Type()'");
-    }
-
-    std::vector<std::pair<Cell *, uint32_t *> > _cells;
-    for(size_t i = 0; i < cells.size(); i++)
-    { _cells.push_back(std::make_pair(cells[i].first, new uint32_t(cells[i].second))); }
-    res->Init(_cells, startTime);
-    
-    return res;
   }
-  catch (std::exception &)
+  else
   {
-    if (res != NULL) delete res;
-    throw;
+    throw std::runtime_error("internal error, unknown enum value of 'config.Type()'");
   }
+
+  res->Init(cells, startTime);    
+  return res;
 }
 
-Simulator *SimulatorFactory::Create(const std::vector<uint32_t> &seeds,
-                                    ICellInitializer *cellInitializer,
-                                    IPoleUpdater *poleUpdater,
-                                    SimulatorConfig config)
+std::unique_ptr<Simulator>SimulatorFactory::Create(const std::vector<Random::State> &states,
+                                                   ICellInitializer *cellInitializer,
+                                                   IPoleUpdater *poleUpdater,
+                                                   SimulatorConfig config)
 {
   std::unique_ptr<ICellInitializer> cellInitializer_;
   if (cellInitializer == nullptr)
@@ -73,47 +61,30 @@ Simulator *SimulatorFactory::Create(const std::vector<uint32_t> &seeds,
   if (poleUpdater == nullptr)
   { poleUpdater_.reset(poleUpdater = new StaticPoleUpdater()); }
 
-  std::vector<std::pair<Cell *, uint32_t> > cells(seeds.size());
-  try
+  Simulator::CellEnsemble cells(states.size());
+  for (size_t i = 0; i < cells.size(); i++)
   {
-    for (size_t i = 0; i < cells.size(); i++)
-    {
-      uint32_t cseed = seeds[i];
-      Cell *cell = new Cell(cellInitializer, poleUpdater, cseed);
-      cells[i] = std::make_pair(cell, cseed);
-    }
-  }
-  catch (std::exception &)
-  {
-    for (size_t i = 0; i < cells.size(); i++)
-      if (cells[i].first != NULL) delete cells[i].first;
-    throw;
+    cells[i] = std::make_unique<CellWithRng>(cellInitializer, poleUpdater, states[i]);
   }
 
   return CreateInternal(cells, 0.0, *poleUpdater, config);
 }
 
-Simulator *SimulatorFactory::Create(const std::vector<std::pair<Cell *, uint32_t> > &cells,
-                                    double startTime,
-                                    IPoleUpdater *poleUpdater,
-                                    SimulatorConfig config)
+std::unique_ptr<Simulator>
+  SimulatorFactory::Create(const std::vector<std::pair<const Cell *, Random::State> > &cells,
+                           double startTime,
+                           IPoleUpdater *poleUpdater,
+                           SimulatorConfig config)
 {
   std::unique_ptr<IPoleUpdater> poleUpdater_;
   if (poleUpdater == nullptr)
   { poleUpdater_.reset(poleUpdater = new StaticPoleUpdater()); }
 
-  std::vector<std::pair<Cell *, uint32_t> > clonnedCells(cells.size());
-  try
+  std::vector<std::unique_ptr<CellWithRng> > cellsWithRng(cells.size());
+  for (size_t i = 0; i < cells.size(); i++)
   {
-    for (size_t i = 0; i < cells.size(); i++)
-      clonnedCells[i] = std::make_pair(cells[i].first->CloneTemplated<Cell>(), cells[i].second);
-  }
-  catch (std::exception &)
-  {
-    for (size_t i = 0; i < clonnedCells.size(); i++)
-      if (clonnedCells[i].first != NULL) delete clonnedCells[i].first;
-    throw;
+    cellsWithRng[i] = std::make_unique<CellWithRng>(*cells[i].first, cells[i].second);
   }
 
-  return CreateInternal(clonnedCells, startTime, *poleUpdater, config);
+  return CreateInternal(cellsWithRng, startTime, *poleUpdater, config);
 }

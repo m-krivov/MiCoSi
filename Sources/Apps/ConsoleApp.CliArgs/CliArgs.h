@@ -217,10 +217,10 @@ namespace Mitosis
         { _obj->SetPoleCoordsFile(System::String::IsNullOrEmpty(value) ? NULL : StrToStr(value).c_str()); }
       }
 
-      property System::UInt32 RngSeed
+      property System::UInt32 UserSeed
       {
-        System::UInt32 get() { return _obj->GetRngSeed(); }
-        void set(System::UInt32 value) { _obj->SetRngSeed(value); }
+        System::UInt32 get() { return _obj->GetUserSeed(); }
+        void set(System::UInt32 value) { _obj->SetUserSeed(value); }
       }
 
       property int CellCount

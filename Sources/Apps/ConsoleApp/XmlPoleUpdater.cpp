@@ -48,14 +48,14 @@ XmlPoleUpdater::XmlPoleUpdater(const char *xmlFile)
   { throw std::runtime_error("Cannot load coordinates for poles, there is no any records"); }
 }
 
-IClonnable *XmlPoleUpdater::Clone()
+IClonnable *XmlPoleUpdater::Clone() const
 {
   XmlPoleUpdater *res = new XmlPoleUpdater(*this);
   res->_lastAccessedRecord = 0;
   return res;
 }
 
-void XmlPoleUpdater::MovePoles(Pole *left, Pole *right, real time, uint32_t &seed)
+void XmlPoleUpdater::MovePoles(Pole *left, Pole *right, real time, Random::State &)
 {
   if (_coords[_lastAccessedRecord].first > time)
     _lastAccessedRecord = 0;

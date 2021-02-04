@@ -1,42 +1,42 @@
-
 #pragma once
+#include "Mitosis.Core/Defs.h"
 
 #include "Mitosis.Streams/All.h"
 #include "Mitosis.Solvers/All.h"
 
-// Definition of the used class.
+// Definition of the used class
 class WorkingDirUtility;
 
-// Extension of the Solver class that adds saving to file functionality.
+// Extension of the Solver class that adds time stamp and save-to-file functionality
 class Simulation : public ICellStatsProvider
 {
-  private:
-    Simulator *_sim;
-    std::vector<TimeStream *> _streams;
-
-    Simulation(Simulator *sim, std::vector<TimeStream *> &streams)
-      : _sim(sim), _streams(streams)
-    { /*nothing*/ }
-
-    Simulation(const Simulation &) = delete;
-    void operator =(const Simulation &) = delete;
-
   public:
-    std::vector<Cell *> Cells();
+    Simulation() = delete;
+    Simulation(const Simulation &) = delete;
+    Simulation(std::unique_ptr<Simulator> &sim,
+               std::vector<std::unique_ptr<TimeStream> > &streams)
+      : _sim(std::move(sim)), _streams(std::move(streams))
+    { /*nothing*/ }
+    Simulation &operator =(const Simulation &) = delete;
+    ~Simulation() = default;
 
-    inline const std::vector<std::pair<Cell *, uint32_t *> > &CellsAndSeeds() { return _sim->Cells(); }
+    const Simulator::CellEnsemble &CellsAndRng() { return _sim->Cells(); }
 
-    inline double Time() { return _sim->Time(); }
+    const std::vector<Cell *> Cells();
 
-    virtual const std::vector<CellStats> &Stats() { return _sim->Stats(); }
+    double Time() { return _sim->Time(); }
 
-    inline bool IsFinished() { return _sim->IsFinished(); }
+    virtual const std::vector<CellStats> &Stats() override { return _sim->Stats(); }
+
+    bool IsFinished() { return _sim->IsFinished(); }
 
     void DoIteration() { _sim->DoIteration(); }
 
     void SaveStates();
 
-    ~Simulation();
+  private:
+    std::unique_ptr<Simulator> _sim;
+    std::vector<std::unique_ptr<TimeStream> > _streams;
 
   friend class WorkingDirUtility;
 };

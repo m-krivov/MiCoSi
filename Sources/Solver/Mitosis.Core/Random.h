@@ -19,7 +19,7 @@ class CongruentialGenerator
 
     void Multiply(State &oldState, std::vector<State> &newStates) const;
 
-    std::string Serialize(State &state) const;
+    std::string Serialize(const State &state) const;
 
     void Deserialize(std::string serialized, State &state) const;
 
@@ -44,7 +44,7 @@ class MersenneTwisterGenerator
 
     void Multiply(State &oldState, std::vector<State> &newStates) const;
 
-    std::string Serialize(State &state) const;
+    std::string Serialize(const State &state) const;
 
     void Deserialize(std::string serialized, State &state) const;
 
@@ -89,7 +89,7 @@ class Random
     { gen_.Multiply(oldState, newStates); }
 
     // Stores some state using string-based format
-    static std::string Serialize(State &state)
+    static std::string Serialize(const State &state)
     { return gen_.Serialize(state); }
 
     // Restores some state from the string

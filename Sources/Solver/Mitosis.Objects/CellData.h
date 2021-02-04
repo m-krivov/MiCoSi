@@ -87,7 +87,7 @@ class CellData : public IClonnable
     { return _data + _offsets[type]; }
 
     // IClonnable member.
-    virtual IClonnable *Clone();
+    virtual IClonnable *Clone() const override;
 
     ~CellData();
 };

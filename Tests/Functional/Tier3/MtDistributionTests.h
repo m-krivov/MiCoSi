@@ -100,7 +100,7 @@ TEST(MtDistribution, InitialDirections)
 {
   auto parameters = gcnew LaunchParameters();
   parameters->Args = gcnew CliArgs();
-  parameters->Args->RngSeed = 100500;
+  parameters->Args->UserSeed = 100500;
 
   parameters->Config = gcnew SimParams();
   parameters->Config[SimParameter::Int::N_MT_Total] = 4000;
@@ -119,7 +119,7 @@ TEST(MtDistribution, NewDirections)
 {
   auto parameters = gcnew LaunchParameters();
   parameters->Args = gcnew CliArgs();
-  parameters->Args->RngSeed = 100500;
+  parameters->Args->UserSeed = 100500;
 
   parameters->Config = gcnew SimParams();
   parameters->Config[SimParameter::Int::N_MT_Total] = 4000;

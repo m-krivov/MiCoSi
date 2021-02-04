@@ -67,7 +67,7 @@ void CongruentialGenerator::Multiply(CongruentialGenerator::State &oldState,
   MultiplyState<CongruentialGenerator::State>(next, applySeed, newStates);
 }
 
-std::string CongruentialGenerator::Serialize(State &state) const
+std::string CongruentialGenerator::Serialize(const State &state) const
 {
   std::ostringstream ss;
   ss << state;
@@ -120,7 +120,7 @@ void MersenneTwisterGenerator::Multiply(MersenneTwisterGenerator::State &oldStat
   MultiplyState<MersenneTwisterGenerator::State>(next, applySeed, newStates);
 }
 
-std::string MersenneTwisterGenerator::Serialize(MersenneTwisterGenerator::State &state) const
+std::string MersenneTwisterGenerator::Serialize(const MersenneTwisterGenerator::State &state) const
 {
   std::ostringstream ss;
   ss << state;

@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Mitosis.Core/Defs.h"
+#include "Mitosis.Core/Random.h"
 
 #include "Pole.h"
 
@@ -35,7 +36,7 @@ class ICellObjectProvider
 class ICell
 {
   public:
-    virtual Pole *GetPole(PoleType::Type pole) = 0;
+    virtual Pole *GetPole(PoleType pole) const = 0;
 
     virtual bool AreSpringsBroken() const = 0;
 
@@ -59,7 +60,7 @@ class ICellInitializer : public IClonnable
 
     // Creates and returns configured cell object.
     // Don't forget that poles must be also initialized via PoleUpdater!
-    virtual void InitializeCell(ICell *cell, uint32_t &seed) = 0;
+    virtual void InitializeCell(ICell *cell, Random::State &state) = 0;
 
     virtual ~ICellInitializer() { }
 };
@@ -69,10 +70,10 @@ class IPoleUpdater : public IClonnable
 {
   public:
     // Sets the initial position of the poles
-    virtual void SetInitial(Pole *left, Pole *right, uint32_t &seed) = 0;
+    virtual void SetInitial(Pole *left, Pole *right, Random::State &state) = 0;
 
     // Changes the position of the poles
-    virtual void MovePoles(Pole *left, Pole *right, real time, uint32_t &seed) = 0;
+    virtual void MovePoles(Pole *left, Pole *right, real time, Random::State &state) = 0;
 
     virtual ~IPoleUpdater() { }
 };

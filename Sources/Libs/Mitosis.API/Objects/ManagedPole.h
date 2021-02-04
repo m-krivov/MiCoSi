@@ -9,8 +9,8 @@ namespace Mitosis
 {
   public enum class PoleType
   {
-    Left  = ::PoleType::Left,
-    Right  = ::PoleType::Right
+    Left   = (int)::PoleType::Left,
+    Right  = (int)::PoleType::Right
   };
 
   public ref class Pole : public IObjectWithID

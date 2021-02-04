@@ -59,7 +59,7 @@ std::vector<std::vector<MT *> > CellOps::ExtractKMTs() const
 	return res;
 }
 
-std::vector<MT *> CellOps::ExtractKMTs(Chromosome *chr) const
+std::vector<MT *> CellOps::ExtractKMTs(const Chromosome *chr) const
 {
   std::vector<MT *> res;
   if (chr != nullptr)

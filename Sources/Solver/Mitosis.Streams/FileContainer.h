@@ -1,14 +1,17 @@
-
 #pragma once
+#include "Mitosis.Core/Defs.h"
 
 #include "Mitosis.Objects/Cell.h"
-
 #include "Chunk.h"
 
-typedef bool (*FrameExtractor)(void* metaData, size_t metaDataSize, void* binData, size_t binDataSize, 
-                 Cell* cell, double &time, size_t &layerCount);
-typedef bool (*ServiceExtractor)(void* metaData, size_t metaDataSize, void* binData, size_t binDataSize);
-typedef bool (*CellExtractor)(void* metaData, size_t metaDataSize, void* binData, size_t binDataSize, Cell* &cell);
+typedef bool (*FrameExtractor)(const void *metaData, size_t metaDataSize,
+                               const void *binData, size_t binDataSize, 
+                               Cell &cell, double &time, size_t &layerCount);
+typedef bool (*ServiceExtractor)(const void *metaData, size_t metaDataSize,
+                                 const void *binData, size_t binDataSize);
+typedef bool (*CellExtractor)(const void *metaData, size_t metaDataSize,
+                              const void *binData, size_t binDataSize,
+                              std::unique_ptr<Cell> &cell);
 
 class FileContainer
 {
@@ -37,7 +40,7 @@ class FileContainer
     uint64_t _version;
 
   private:
-    static FILE *OpenFile(const char *filename, const char *opt);
+    static FILE *OpenFile(const std::string &filename, const char *opt);
     void AppendChunk(ChunkType::Type type, double time, size_t count, void *metaData, size_t metaDataSize, void *binData, size_t binDataSize);
 
     FileContainer(FILE *file, offset_t newChunkStart, const std::vector<ChunkHeader> &table, uint64_t version, bool rewriteTable)
@@ -48,8 +51,9 @@ class FileContainer
     
     void operator =(const FileContainer &) = delete;
 
-    static bool ValidateChunk(FILE *f, uint64_t &newChunkStart, std::vector<ChunkHeader> &table, Cell* &cell,
-                  FrameExtractor fextr, ServiceExtractor sextr, CellExtractor cextr);
+    static bool ValidateChunk(FILE *f, uint64_t &newChunkStart, std::vector<ChunkHeader> &table,
+                              std::unique_ptr<Cell> &cell,
+                              FrameExtractor fextr, ServiceExtractor sextr, CellExtractor cextr);
 
   public:
     // Returns table with all chunks.
@@ -74,12 +78,12 @@ class FileContainer
 
   public:
     // Tries to open file. Throws exception in case of any error.
-    static std::shared_ptr<FileContainer> Open(const char *filename);
+    static std::shared_ptr<FileContainer> Open(const std::string &filename);
 
     // Tries to repair broken file (rescans chunks and builds table). Can throw exception.
-    static std::shared_ptr<FileContainer> Repair(const char *filename, 
+    static std::shared_ptr<FileContainer> Repair(const std::string &filename, 
       FrameExtractor fextr, ServiceExtractor sextr, CellExtractor cextr);
 
     // Creates new (empty) file or overwrites existent. Can throw exception.
-    static std::shared_ptr<FileContainer> Create(const char *filename, uint64_t version);
+    static std::shared_ptr<FileContainer> Create(const std::string &filename, uint64_t version);
 };

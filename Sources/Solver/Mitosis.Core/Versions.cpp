@@ -17,6 +17,6 @@ std::string Version::ToString() const
 //--- CurrentVersion ---
 //----------------------
 
-Version *CurrentVersion::_programVersion = new Version(0, 9, 0, "January, 2019");
+Version *CurrentVersion::_programVersion = new Version(0, 9, 2, "January, 2021");
 
-int CurrentVersion::_fileFormatVersion = 0;
+int CurrentVersion::_fileFormatVersion = 1;

@@ -1,95 +1,122 @@
-
 #pragma once
+#include "Mitosis.Core/Defs.h"
 
-#include "TimeLayer.h"
 #include "FileExplorer.h"
 
 // Stream that retrieves time layers from files.
 class TimeStream
 {
-  private:
-    std::string _file;
-    uint32_t _initialRandSeed;
-    FileExplorer* _fe;
-    MemoryStream* _stream;
-    SimParams *_params;
-    Cell *_cell;
-    int _curLayerIndex;
-    TimeLayer _timeLayer;
-    bool _wasChanged;
-
-  private:
-    static bool TimeLayerExtractor(void* metaData, size_t metaDataSize, void* binData, size_t binDataSize,
-                                   Cell* cell, double &time, size_t &layerCount);
-    static bool SimParamsExtractor(void* metaData, size_t metaDataSize, void* binData, size_t binDataSize);
-    static bool CellConfigurationExtractor(void* metaData, size_t metaDataSize, void* binData, size_t binDataSize, Cell* &cell);
-
-  private:
-    static void LockFile(const char *file);
-
-    static bool IsFileLocked(const char *file);
-
-    static void UnLockFile(const char *file);
-
-    // Creates TimeStream.
-    TimeStream(const std::string &file, FileExplorer *fe, MemoryStream* stream, uint32_t initialRandSeed);
-
   public:
-    // Returns initial randsom seed.
-    inline uint32_t InitialRandSeed()
-    { return _initialRandSeed; }
+    // Light-weight wrapper that contains information about the current iteration
+    class TimeLayer
+    {
+      public:
+        TimeLayer(const TimeLayer &) = default;
+        TimeLayer &operator =(const TimeLayer &) = default;
 
-    // Moves to next time layer. If such exists returns "true" and "false" otherwise.
-    bool MoveNext();
+        const SimParams &GetSimParams() const
+        { return *_simParams; }
 
-    // Moves to required layer.
-    void MoveTo(size_t layerIndex);
+        const Cell &GetCell() const
+        { return *_cell; }
 
-    // Returns total count of time layers.
-    size_t LayerCount()
-    { return _fe->TimeLayerCount(); }
+        double GetTime() const
+        { return _time; }
 
-    // Returns current time layer.
-    // Provided object can be invalid after calling "MoveNext()" method.
-    inline TimeLayer &Current()
-    { return _timeLayer; }
+        const Random::State &GetRng() const
+        { return *_rng; }
 
-    // Resets built-in iterator.
-    void Reset();
+      private:
+        TimeLayer() : _cell(nullptr), _simParams(nullptr), _time(0.0) { }
+        TimeLayer(const Cell *cell, const SimParams *simParams, double time, const Random::State *rng)
+          : _cell(cell), _simParams(simParams), _time(time), _rng(rng)
+        { /*nothing*/ }
 
-    // Returns time for required layer.
-    double GetLayerTime(size_t layerIndex);
+        const Cell *_cell;
+        const SimParams *_simParams;
+        double _time;
+        const Random::State *_rng;
 
-    // Writes simulation parameters into stream.
-    // All following layers will use these parameters.
-    // Resets built-in iterator.
-    void Append(SimParams *params);
+      friend class TimeStream;
+    };
 
-    // Writes provided time layer into end of the stream.
-    // Resets built-in iterator.
-    void Append(Cell *cell, double time, uint32_t randSeed);
-
-    // Stores all changes into files.
-    void Flush();
-
+    TimeStream() = delete;
+    TimeStream(const TimeStream &) = delete;
+    TimeStream &operator =(const TimeStream &) = delete;
     ~TimeStream();
 
+    // Returns the initial seed of RNG that may be used to reproduce the results
+    // Negative values mean that RNG has no seed (e.g. time-based initialization)
+    int64_t UserSeed() const
+    { return _userSeed; }
+
+    // Like 'UserSeed()', but returns the initial RNG state that is always valid
+    const Random::State &InitialRNG() const
+    { return _initialRng; }
+
+    // Returns the total count of time layers
+    size_t LayerCount() const
+    { return _fe->TimeLayerCount(); }
+
+    // Returns the current time layer
+    // Beware: the provided object may become invalid after calling 'MoveNext()' method
+    const TimeLayer Current() const;
+
+    // Moves to next time layer
+    // If such layer exists, returns 'true'
+    bool MoveNext();
+
+    // Moves to the required layer
+    void MoveTo(size_t layerIndex);
+
+    // Resets built-in iterator
+    void Reset();
+
+    // Returns time for the required layer
+    double GetLayerTime(size_t layerIndex);
+
+    // Writes simulation parameters to the stream
+    // All following layers will use these parameters
+    // Resets the built-in iterator
+    void Append(const SimParams &params);
+
+    // Writes the given time layer to the end of the stream
+    // Resets built-in iterator
+    void Append(const Cell &cell, double time, const Random::State &rng);
+
+    // Stores all changes
+    void Flush();
+
+    // Creates new file for time stream
+    // If the previous file exist, rewrites it
+    static std::unique_ptr<TimeStream> Create(const std::string &file,
+                                              const Cell &cell,
+                                              const Random::State &rng,
+                                              int64_t userSeed = -1);
+
+    //Tries to open some stored simulation results
+    static std::unique_ptr<TimeStream> Open(const std::string &file);
+
+    // Tries to open stored simulation results and validate all records
+    static std::unique_ptr<TimeStream> Repair(const std::string &file);
+
   private:
-    static TimeStream *_UniOpen(const char *file, bool repair);
+    TimeStream(const std::string &file,
+               std::unique_ptr<FileExplorer> &fe,
+               const Random::State &initialRng,
+               int64_t userSeed);
 
-  public:
+    static std::unique_ptr<TimeStream> OpenFile(const std::string &file, bool repair);
 
-    // Creates new files for time stream. If previous files exist then rewrites them.
-    // In case of error throws std::exception.
-    static TimeStream *Create(const char *file, Cell *cell, uint32_t initialRandSeed);
+    std::string _file;
+    int64_t _userSeed;
+    Random::State _initialRng;
+    int _curLayerIndex;
+    bool _needToFlush;
+    std::unique_ptr<FileExplorer> _fe;
 
-    //Tries to open stored simulation results.
-    //In case of error throws std::exception.
-    static inline TimeStream *Open(const char *file)
-    { return _UniOpen(file, false); }
-
-    // Tries to open stored simulation results and validate all records.
-    // In case of errors restores as much as possible. Or throws std::exception.
-    static TimeStream *Repair(const char *file)
-    { return _UniOpen(file, true); }
+    std::unique_ptr<SimParams> _params;
+    std::unique_ptr<Cell> _cell;
+    double _time;
+    Random::State _rng;
 };

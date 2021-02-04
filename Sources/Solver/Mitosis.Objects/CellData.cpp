@@ -85,7 +85,7 @@ CellData::CellData(size_t chrPairs, size_t mtsPerPole)
   memset(_data, 0, _dataSize);
 }
 
-IClonnable *CellData::Clone()
+IClonnable *CellData::Clone() const
 {
   CellData *res = NULL;
 

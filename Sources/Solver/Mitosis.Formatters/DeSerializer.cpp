@@ -8,6 +8,69 @@
 #include "DeSerializingCellInitializer.h"
 #include "DeSerializingPoleUpdater.h"
 
+namespace
+{
+
+class Loader
+{
+  public:
+    Loader() = delete;
+    Loader(const void *data, size_t sizeInBytes)
+      : _data(data), _sizeInBytes(sizeInBytes)
+    { /*nothing*/ }
+    Loader &operator =(const Loader &) = delete;
+
+    void LoadArray(size_t offset, size_t size, void *dst) const
+    {
+      if (offset + size > _sizeInBytes)
+      { throw std::runtime_error("Cannot load array"); }
+      memcpy(dst, (uint8_t *)_data + offset, size);
+    }
+
+  private:
+    const void *_data;
+    size_t _sizeInBytes;
+};
+
+template <class T>
+static void DeserializeArray(const TiXmlElement *node, const char *name,
+                             const Loader &bin, std::vector<T> &arr)
+{
+  std::string sName;
+  offset_t offset = -1;
+  int size = 0;
+  if (node->QueryStringAttribute(name, &sName) != TIXML_SUCCESS)
+  { throw std::runtime_error("Cannot get offset and size for array"); }
+
+  size_t delim = sName.find(':');
+  size_t len = sName.length();
+  offset_t t[2];
+  if (delim != std::string::npos)
+  { Converter::Parse(sName.substr(0, delim), t[0]); }
+  else
+  { throw std::runtime_error("Internal error at DeSerializer::DeSerializeArray(): cannot find delim"); }
+  Converter::Parse(sName.substr(delim+1, len - delim), t[1]);
+
+  if (t[0] >= 0 && t[1] > 0)
+  {
+    arr.resize((size_t)(t[1] / sizeof(T)));
+    bin.LoadArray((size_t)t[0], (size_t)t[1], &arr[0]);
+  }
+  else
+  { arr.resize(0); }
+}
+
+double UintToDoubleConverter(const int* buf)
+{
+  double res;
+  int *p_res = (int *)&res;
+  p_res[0] = buf[0];
+  p_res[1] = buf[1];
+  return res;
+}
+
+} // unnamed namespace
+
 //--------------------
 //--- DeSerializer ---
 //--------------------
@@ -26,125 +89,123 @@ std::pair<Version, int> DeSerializer::DeserializeVersion(uint64_t version)
   return std::make_pair(Version((int)major, (int)minor, (int)build), (int)fileFormatVersion);
 }
 
-std::pair<Cell *, uint32_t> DeSerializer::DeserializeCellConfiguration(TiXmlElement *configuration, void* data, size_t sizeInBytes)
-{
-  //Loading parameters.
-  int randSeed;
-  int mtCount;
-  int chCount;
+std::pair<Random::State, int64_t> DeSerializer::DeserializeRng(const TiXmlElement *configuration,
+                                                               const void *data, size_t sizeInBytes) {
+  const TiXmlNode *node = nullptr;
+  const TiXmlElement *elem = nullptr;
+  if ((node = configuration->FirstChild("Parameters")) == nullptr ||
+      (elem = node->ToElement()) == nullptr)
+  { throw std::runtime_error("cannot open section with cell's parameters"); }
 
-  std::unique_ptr<Loader> bin(new Loader(data, sizeInBytes));
+  std::string seedString, stateString;
+  if (elem->QueryStringAttribute("rng_seed",  &seedString)  != TIXML_SUCCESS ||
+      elem->QueryStringAttribute("rng_state", &stateString) != TIXML_SUCCESS)
+  { throw std::runtime_error("cannot get record with initial RNG"); }
 
-  TiXmlElement *params = NULL;
-  if (configuration->FirstChild("Parameters") == NULL ||
-    (params = configuration->FirstChild("Parameters")->ToElement()) == NULL)
-  { throw std::runtime_error("Cannot open section with cell's parameters"); }
-
-  if (params->QueryIntAttribute("init_rand_seed", &randSeed) != TIXML_SUCCESS ||
-    params->QueryIntAttribute("n_mt_total", &mtCount) != TIXML_SUCCESS ||
-    params->QueryIntAttribute("n_cr_total", &chCount) != TIXML_SUCCESS)
-  { throw std::runtime_error("Cannot get some cell's parameters"); }
-
-  //Loading MT parameters.
-  TiXmlElement *mts = NULL;
-  if (configuration->FirstChild("MTs") == NULL ||
-    (mts = configuration->FirstChild("MTs")->ToElement()) == NULL)
-  { throw std::runtime_error("Cannot open section with MTs"); }
-
-  //Creating cell.
-  Cell *res = NULL;
-  try
+  int64_t seed = 0;
   {
-    DeSerializingCellInitializer cellInitializer((size_t)chCount / 2, (size_t)mtCount / 2);
-    DeSerializingPoleUpdater poleUpdater;
-
-    uint32_t seed = 0;  //not used during deserialization
-    res = new Cell(&cellInitializer, &poleUpdater, seed);
-  }
-  catch (std::exception &)
-  {
-    if (res != NULL)
-      delete res;
-    throw;
+    std::istringstream ss(seedString);
+    if (!(ss >> seed) || !ss.eof())
+    { throw std::runtime_error("failed to parse initial RNG seed"); }
   }
 
-  //Returning result.
-  return std::make_pair(res, (uint32_t)randSeed);
+  Random::State state;
+  Random::Deserialize(stateString, state);
 
+  return std::make_pair(state, seed);
 }
 
-double UintToDoubleConverter(const int* buf)
+std::unique_ptr<Cell> DeSerializer::DeserializeCellConfiguration(const TiXmlElement *configuration,
+                                                                 const void *data, size_t sizeInBytes)
 {
-  double res;
-  int* p_res = (int*)&res;
-  p_res[0] = buf[0];
-  p_res[1] = buf[1];
+  // Load parameters
+  const TiXmlNode *node = nullptr;
+  const TiXmlElement *params = nullptr;
+  if ((node = configuration->FirstChild("Parameters")) == nullptr ||
+      (params = node->ToElement()) == nullptr)
+  { throw std::runtime_error("Cannot open section with cell's parameters"); }
+
+  int mtCount, chCount;
+  if (params->QueryIntAttribute("n_mt_total", &mtCount) != TIXML_SUCCESS ||
+      params->QueryIntAttribute("n_cr_total", &chCount) != TIXML_SUCCESS)
+  { throw std::runtime_error("Cannot get some cell's parameters"); }
+
+  // Load MT parameters
+  const TiXmlElement *mts = nullptr;
+  if (configuration->FirstChild("MTs") == nullptr ||
+      (mts = configuration->FirstChild("MTs")->ToElement()) == nullptr)
+  { throw std::runtime_error("Cannot open section with MTs"); }
+
+  // Create cell
+  std::unique_ptr<Cell> res;
+  DeSerializingCellInitializer cellInitializer((size_t)chCount / 2, (size_t)mtCount / 2);
+  DeSerializingPoleUpdater poleUpdater;
+  Random::State fake_state;
+  res = std::make_unique<Cell>(&cellInitializer, &poleUpdater, fake_state);
+
   return res;
 }
 
-std::pair<double, uint32_t> DeSerializer::DeserializeTimeLayer(TiXmlElement *timeLayer, Cell *cell, void* data, size_t sizeInBytes)
+std::pair<double, Random::State> DeSerializer::DeserializeTimeLayer(const TiXmlElement *timeLayer, Cell &cell,
+                                                                    const void *data, size_t sizeInBytes)
 {
-  std::unique_ptr<Loader> _bin(new Loader(data, sizeInBytes));
-  Loader *bin = _bin.get();
-
-  //Loading rand-seed and time.
-  double time = 0.0;
-  int randSeed = 0;
-  int doubleBuf[2];
-  doubleBuf[0] = 0;
-  doubleBuf[1] = 0;
-  if (timeLayer->QueryIntAttribute("t0", &doubleBuf[0]) != TIXML_SUCCESS || 
-    timeLayer->QueryIntAttribute("t1", &doubleBuf[1]) != TIXML_SUCCESS ||
-    timeLayer->QueryIntAttribute("rand", &randSeed) != TIXML_SUCCESS)
-  { throw std::runtime_error("File with cell is corrupted. Cannot get time or random seed attribute"); }
-  time = UintToDoubleConverter(doubleBuf);
-  if(time < 0)
+  // Load RNG state and time
+  int doubleBuf[2] = { 0, 0 };
+  std::string rngString;
+  if (timeLayer->QueryIntAttribute("t0", &doubleBuf[0]) != TIXML_SUCCESS ||
+      timeLayer->QueryIntAttribute("t1", &doubleBuf[1]) != TIXML_SUCCESS ||
+      timeLayer->QueryStringAttribute("rand", &rngString) != TIXML_SUCCESS)
+  { throw std::runtime_error("File with cell is corrupted. Cannot get time or RNG state attribute"); }
+  
+  double time = UintToDoubleConverter(doubleBuf);
+  if (time < 0)
   { throw std::runtime_error("File with cell is corrupted. Cannot get time"); }
-  //Loading cell's parameters.
+  
+  // Load cell's parameters
   vec3d leftPole;
   vec3d rightPole;
   int springBroken;
-  TiXmlElement *cellSect = NULL;
-  if (timeLayer->FirstChild("Cell") == NULL ||
-    (cellSect = timeLayer->FirstChild("Cell")->ToElement()) == NULL)
+  const TiXmlElement *cellSect = nullptr;
+  if (timeLayer->FirstChild("Cell") == nullptr ||
+      (cellSect = timeLayer->FirstChild("Cell")->ToElement()) == nullptr)
   { throw std::runtime_error("Cannot open section with cell configuration"); }
 
   if (cellSect->QueryIntAttribute("SprBrkn", &springBroken) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration"); }
-  if(cellSect->QueryIntAttribute("LPX0", doubleBuf) != TIXML_SUCCESS || 
-    cellSect->QueryIntAttribute("LPX1", doubleBuf+1) != TIXML_SUCCESS)
+  if (cellSect->QueryIntAttribute("LPX0", doubleBuf) != TIXML_SUCCESS || 
+      cellSect->QueryIntAttribute("LPX1", doubleBuf + 1) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration0"); }
   leftPole.x = UintToDoubleConverter(doubleBuf);
-  if(cellSect->QueryIntAttribute("LPY0", doubleBuf) != TIXML_SUCCESS || 
-    cellSect->QueryIntAttribute("LPY1", doubleBuf+1) != TIXML_SUCCESS)
+  if (cellSect->QueryIntAttribute("LPY0", doubleBuf) != TIXML_SUCCESS || 
+      cellSect->QueryIntAttribute("LPY1", doubleBuf + 1) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration1"); }
   leftPole.y = UintToDoubleConverter(doubleBuf);
-  if(cellSect->QueryIntAttribute("LPZ0", doubleBuf) != TIXML_SUCCESS || 
-    cellSect->QueryIntAttribute("LPZ1", doubleBuf+1) != TIXML_SUCCESS)
+  if (cellSect->QueryIntAttribute("LPZ0", doubleBuf) != TIXML_SUCCESS || 
+      cellSect->QueryIntAttribute("LPZ1", doubleBuf + 1) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration2"); }
   leftPole.z = UintToDoubleConverter(doubleBuf);
-  if(cellSect->QueryIntAttribute("RPX0", doubleBuf) != TIXML_SUCCESS || 
-    cellSect->QueryIntAttribute("RPX1", doubleBuf+1) != TIXML_SUCCESS)
+  if (cellSect->QueryIntAttribute("RPX0", doubleBuf) != TIXML_SUCCESS || 
+      cellSect->QueryIntAttribute("RPX1", doubleBuf+1) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration3"); }
   rightPole.x = UintToDoubleConverter(doubleBuf);
-  if(cellSect->QueryIntAttribute("RPY0", doubleBuf) != TIXML_SUCCESS || 
-    cellSect->QueryIntAttribute("RPY1", doubleBuf+1) != TIXML_SUCCESS)
+  if (cellSect->QueryIntAttribute("RPY0", doubleBuf) != TIXML_SUCCESS || 
+      cellSect->QueryIntAttribute("RPY1", doubleBuf + 1) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration4"); }
   rightPole.y = UintToDoubleConverter(doubleBuf);
-  if(cellSect->QueryIntAttribute("RPZ0", doubleBuf) != TIXML_SUCCESS || 
-    cellSect->QueryIntAttribute("RPZ1", doubleBuf+1) != TIXML_SUCCESS)
+  if (cellSect->QueryIntAttribute("RPZ0", doubleBuf) != TIXML_SUCCESS || 
+      cellSect->QueryIntAttribute("RPZ1", doubleBuf + 1) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot load cell configuration5"); }
   rightPole.z = UintToDoubleConverter(doubleBuf);
 
-  cell->SetSpringFlag(springBroken != 0);
-  cell->GetPole(PoleType::Left)->Position() = vec3r((real)leftPole.x, (real)leftPole.y, (real)leftPole.z);
-  cell->GetPole(PoleType::Right)->Position() = vec3r((real)rightPole.x, (real)rightPole.y, (real)rightPole.z);
+  cell.SetSpringFlag(springBroken != 0);
+  cell.GetPole(PoleType::Left)->Position() = vec3r((real)leftPole.x, (real)leftPole.y, (real)leftPole.z);
+  cell.GetPole(PoleType::Right)->Position() = vec3r((real)rightPole.x, (real)rightPole.y, (real)rightPole.z);
 
-  //Loading MT's parameters.
+  // Load MT's parameters
   int offset = -1, size = 0;
-  TiXmlElement *mts = NULL;
-  if (timeLayer->FirstChild("MTs") == NULL ||
-    (mts = timeLayer->FirstChild("MTs")->ToElement()) == NULL)
+  const TiXmlElement *mts = nullptr;
+  if (timeLayer->FirstChild("MTs") == nullptr ||
+      (mts = timeLayer->FirstChild("MTs")->ToElement()) == nullptr)
   { throw std::runtime_error("File with cell is corrupted. Cannot open section with MTs"); }
   
   std::vector<real> lengthes;
@@ -157,6 +218,7 @@ std::pair<double, uint32_t> DeSerializer::DeserializeTimeLayer(TiXmlElement *tim
   std::vector<int> states;
   std::vector<int> boundIDs;
 
+  Loader bin(data, sizeInBytes);
   DeserializeArray<real>(mts, "Len", bin, lengthes);
   DeserializeArray<real>(mts, "DX", bin, mtDirs_x);
   DeserializeArray<real>(mts, "DY", bin, mtDirs_y);
@@ -167,39 +229,45 @@ std::pair<double, uint32_t> DeSerializer::DeserializeTimeLayer(TiXmlElement *tim
   DeserializeArray<int>(mts, "St", bin, states);
   DeserializeArray<int>(mts, "Bnd", bin, boundIDs);
 
-  if (cell->MTs().size() != lengthes.size() ||
-    cell->MTs().size() != mtDirs_x.size() ||
-    cell->MTs().size() != mtDirs_y.size() ||
-    cell->MTs().size() != mtDirs_z.size() ||
-    cell->MTs().size() != mtForces_x.size() ||
-    cell->MTs().size() != mtForces_y.size() ||
-    cell->MTs().size() != mtForces_z.size() ||
-    cell->MTs().size() != states.size() ||
-    cell->MTs().size() != boundIDs.size())
-  { throw std::runtime_error("File with cell is corrupted. Count of MTs differs in initial configuration and time layer"); }
+  if (cell.MTs().size() != lengthes.size() ||
+      cell.MTs().size() != mtDirs_x.size() ||
+      cell.MTs().size() != mtDirs_y.size() ||
+      cell.MTs().size() != mtDirs_z.size() ||
+      cell.MTs().size() != mtForces_x.size() ||
+      cell.MTs().size() != mtForces_y.size() ||
+      cell.MTs().size() != mtForces_z.size() ||
+      cell.MTs().size() != states.size() ||
+      cell.MTs().size() != boundIDs.size())
+  {
+    throw std::runtime_error(
+        "File with cell is corrupted. Count of MTs differs in initial configuration and time layer"
+    );
+  }
 
-  size_t chrSize = cell->Chromosomes().size();
+  int chrSize = (int)cell.Chromosomes().size();
   for (size_t i = 0; i < lengthes.size(); i++)
-    if (boundIDs[i] >= (int)chrSize)
-      throw std::runtime_error("File with cell is corrupted. Wrong indices of the bound MTs");
+  {
+    if (boundIDs[i] >= chrSize)
+    { throw std::runtime_error("File with cell is corrupted. Wrong indices of the bound MTs"); }
+  }
 
   for (size_t i = 0; i < lengthes.size(); i++)
   {
-    MT *mt = cell->MTs()[i];
+    MT *mt = cell.MTs()[i];
     mt->Length() = lengthes[i];
     mt->Direction() = vec3r(mtDirs_x[i], mtDirs_y[i], mtDirs_z[i]);
     mt->ForceOffset() = vec3r(mtForces_x[i], mtForces_y[i], mtForces_z[i]);
     mt->State() = states[i] == 0 ? MTState::Polymerization : MTState::Depolymerization;
-    if (mt->BoundChromosome() != NULL)
-      mt->UnBind();
+    if (mt->BoundChromosome() != nullptr)
+    { mt->UnBind(); }
     if (boundIDs[i] >= 0)
-      mt->Bind(cell->Chromosomes()[boundIDs[i]]);
+    { mt->Bind(cell.Chromosomes()[boundIDs[i]]); }
   }
 
-  //Loading chromosomes.
-  TiXmlElement *chrs = NULL;
-  if (timeLayer->FirstChild("Chrms") == NULL ||
-    (chrs = timeLayer->FirstChild("Chrms")->ToElement()) == NULL)
+  // Load chromosomes
+  const TiXmlElement *chrs = nullptr;
+  if (timeLayer->FirstChild("Chrms") == nullptr ||
+      (chrs = timeLayer->FirstChild("Chrms")->ToElement()) == nullptr)
   { throw std::runtime_error("File with cell is corrupted. Cannot open section with chromosomes"); }
 
   std::vector<real> x;
@@ -212,15 +280,18 @@ std::pair<double, uint32_t> DeSerializer::DeserializeTimeLayer(TiXmlElement *tim
   DeserializeArray<real>(chrs, "Z", bin, z);
   DeserializeArray<real>(chrs, "Mat", bin, mat);
 
-  if (cell->Chromosomes().size() != x.size() ||
-    cell->Chromosomes().size() != y.size() ||
-    cell->Chromosomes().size() != z.size() ||
-    cell->Chromosomes().size() != mat.size() / 9)
-  { throw std::runtime_error("File with cell is corrupted. Count of Chromosomes differs in initial configuration and time layer"); }
+  if (cell.Chromosomes().size() != x.size() ||
+      cell.Chromosomes().size() != y.size() ||
+      cell.Chromosomes().size() != z.size() ||
+      cell.Chromosomes().size() != mat.size() / 9)
+  {
+    throw std::runtime_error(
+        "File with cell is corrupted. Count of Chromosomes differs in initial configuration and time layer"
+    );
+  }
 
-  const std::vector<Chromosome *> &chrsRef = cell->Chromosomes();
-
-  for (size_t i = 0; i < cell->Chromosomes().size(); i++)
+  const std::vector<Chromosome *> &chrsRef = cell.Chromosomes();
+  for (size_t i = 0; i < cell.Chromosomes().size(); i++)
   {
     Chromosome *chrRef = chrsRef[i];
     chrRef->Position() = vec3r(x[i], y[i], z[i]);
@@ -230,65 +301,57 @@ std::pair<double, uint32_t> DeSerializer::DeserializeTimeLayer(TiXmlElement *tim
   }
 
   //Returning results.
-  return std::make_pair(time, (uint32_t)randSeed);
+  Random::State rngState;
+  Random::Deserialize(rngString, rngState);
+  return std::make_pair(time, rngState);
 }
 
-double DeSerializer::DeserializeTime(TiXmlElement *timeLayer)
+double DeSerializer::DeserializeTime(const TiXmlElement *timeLayer)
 {
-  double time = 0.0;
-  int doubleBuf[2];
-  doubleBuf[0] = 0;
-  doubleBuf[1] = 0;
+  int doubleBuf[2] = { 0, 0 };
   if (timeLayer->QueryIntAttribute("t0", &doubleBuf[0]) != TIXML_SUCCESS || 
-    timeLayer->QueryIntAttribute("t1", &doubleBuf[1]) != TIXML_SUCCESS)
+      timeLayer->QueryIntAttribute("t1", &doubleBuf[1]) != TIXML_SUCCESS)
   { throw std::runtime_error("Cannot get time attribute"); }
-  time = UintToDoubleConverter(doubleBuf);
-  if(time < 0)
+  
+  double time = UintToDoubleConverter(doubleBuf);
+  if (time < 0.0)
   {
     std::stringstream str;
-    str << "Unexpected value of time record" << time;
+    str << "Unexpected value of time record: " << time;
     throw std::runtime_error(str.str().c_str());
   }
+
   return time;
 }
 
-SimParams *DeSerializer::DeserializeSimParams(TiXmlElement *params, void* data, size_t sizeInBytes)
+std::unique_ptr<SimParams> DeSerializer::DeserializeSimParams(const TiXmlElement *params,
+                                                              const void *data, size_t sizeInBytes)
 {
-  SimParams *res = NULL;
+  std::unique_ptr<SimParams> res = std::make_unique<SimParams>();
+  res->SetAccess(SimParams::Access::Initialize);
 
-  try
-  {
-    res = new SimParams();
-    res->SetAccess(SimParams::Access::Initialize);
-    for (TiXmlAttribute *attr = params->FirstAttribute();
+  for (const TiXmlAttribute *attr = params->FirstAttribute();
        attr != NULL;
        attr = attr->Next())
-    {
-      auto name = attr->NameTStr();
-      if(name[name.size() - 1] == '0')
-      {
-        int doubleBuf[2];
-        Converter::Parse(attr->Value(), doubleBuf[0]);
-        attr = attr->Next();
-        if(attr == NULL)
-          throw new std::runtime_error("DeSerializer::DeserializeSimParams - damaged file");
-        name = attr->NameTStr();
-        if(name[name.size() - 1] != '1')
-          throw new std::runtime_error("DeSerializer::DeserializeSimParams - damaged file");
-        Converter::Parse(attr->Value(), doubleBuf[1]);
-        res->SetParameter(name.substr(0, name.size()-1), Converter::ToString(UintToDoubleConverter(doubleBuf)));
-      }
-      else
-        res->SetParameter(attr->Name(), attr->Value());
-    }
-    res->SetAccess(SimParams::Access::ReadOnly);
-  }
-  catch (std::runtime_error &)
   {
-    if (res != NULL)
-      delete res;
-    throw;
+    auto name = attr->NameTStr();
+    if (name[name.size() - 1] == '0')
+    {
+      int doubleBuf[2] = { 0, 0 };
+      Converter::Parse(attr->Value(), doubleBuf[0]);
+      if ((attr = attr->Next()) == nullptr)
+      { throw new std::runtime_error("DeSerializer::DeserializeSimParams - damaged file"); }
+      name = attr->NameTStr();
+      if(name[name.size() - 1] != '1')
+      { throw new std::runtime_error("DeSerializer::DeserializeSimParams - damaged file"); }
+      Converter::Parse(attr->Value(), doubleBuf[1]);
+      res->SetParameter(name.substr(0, name.size() - 1),
+                        Converter::ToString(UintToDoubleConverter(doubleBuf)));
+    }
+    else
+    { res->SetParameter(attr->Name(), attr->Value()); }
   }
+  res->SetAccess(SimParams::Access::ReadOnly);
 
   return res;
 }

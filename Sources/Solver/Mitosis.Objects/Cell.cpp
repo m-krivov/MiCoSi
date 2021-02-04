@@ -51,20 +51,20 @@ Cell::Cell(CellData *data)
   CreateObjects(_data.get());
 }
 
-Cell::Cell(ICellInitializer *initializer, IPoleUpdater *updater, uint32_t &initializationSeed)
+Cell::Cell(ICellInitializer *initializer, IPoleUpdater *updater, Random::State &state)
 {
-  // Constructing cell data and objects.
+  // Construct cell data and objects
   size_t chrPairs = 0, mtsPerPole = 0;
   initializer->GetCellConfig(chrPairs, mtsPerPole);
   _data.reset(new CellData(chrPairs, mtsPerPole));
   CreateObjects(_data.get());
 
-  // Setting poles.
+  // Set poles
   uint32_t *poleType = (uint32_t *)_data->GetArray(CellArray::POLE_TYPE);
   poleType[(uint32_t)PoleType::Left]  = (uint32_t)PoleType::Left;
   poleType[(uint32_t)PoleType::Right] = (uint32_t)PoleType::Right;
 
-  // Setting MTs.
+  // Set MTs
   if (_data->MTsPerPole() != 0)
   {
     uint32_t *mtPole = (uint32_t *)_data->GetArray(CellArray::MT_POLE);
@@ -76,7 +76,7 @@ Cell::Cell(ICellInitializer *initializer, IPoleUpdater *updater, uint32_t &initi
     }
   }
 
-  // Setting chromosomes.
+  // Set chromosomes
   if (_data->ChromosomePairs() != 0)
   {
     uint32_t *chrPairLeft  = (uint32_t *)_data->GetArray(CellArray::CHR_PAIR_LEFF_CHROMOSOME);
@@ -88,14 +88,15 @@ Cell::Cell(ICellInitializer *initializer, IPoleUpdater *updater, uint32_t &initi
     }
   }
 
-  // All structures were created, indices were set, initializing values.
-  initializer->InitializeCell(this, initializationSeed);
-  updater->SetInitial(GetPole(PoleType::Left), GetPole(PoleType::Right), initializationSeed);
+  // All structures were created, indices were set
+  // So, initialize values
+  initializer->InitializeCell(this, state);
+  updater->SetInitial(GetPole(PoleType::Left), GetPole(PoleType::Right), state);
 }
 
-IClonnable *Cell::Clone()
+IClonnable *Cell::Clone() const
 {
-  CellData *data = NULL;
+  CellData *data = nullptr;
   try
   {
     data = _data->CloneTemplated<CellData>();

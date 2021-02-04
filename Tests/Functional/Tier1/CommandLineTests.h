@@ -127,7 +127,7 @@ TEST(CommandLine, AllArgs)
     parameters->Args->CellCount = 2;
     auto argsForFix = safe_cast<CliArgs ^>(parameters->Args->Clone());
     auto argsForContinue = safe_cast<CliArgs ^>(parameters->Args->Clone());
-    parameters->Args->RngSeed = 42;
+    parameters->Args->UserSeed = 42;
     auto argsForNew = safe_cast<CliArgs ^>(parameters->Args->Clone());
 
     parameters->Config = gcnew SimParams();
@@ -197,7 +197,7 @@ TEST(CommandLine, ResettingArg)
     ASSERT_FALSE(args->Export()->Contains(seedOpt)) << StringToString("Some options are defined by default");
 
     //Now it's defined.
-    args->RngSeed = 100500;
+    args->UserSeed = 100500;
     ASSERT_TRUE(args->Export()->Contains(seedOpt)) << StringToString("Defined option was ignored during export");
 
     //And now not.

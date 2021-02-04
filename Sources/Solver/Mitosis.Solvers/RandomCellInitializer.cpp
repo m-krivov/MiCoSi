@@ -15,7 +15,7 @@ void RandomCellInitialzier::GetCellConfig(size_t &chrPairs, size_t &mtsPerPole)
   mtsPerPole  = (size_t)GlobalSimParams::GetRef()->GetParameter(SimParameter::Int::N_MT_Total);
 }
 
-void RandomCellInitialzier::InitializeCell(ICell *cell, uint32_t &seed)
+void RandomCellInitialzier::InitializeCell(ICell *cell, Random::State &state)
 {
   double r_cell = GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
   double l_poles = GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::L_Poles, true);
@@ -26,28 +26,29 @@ void RandomCellInitialzier::InitializeCell(ICell *cell, uint32_t &seed)
   double cr_spring_l = GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Spring_Length, true);
   Geometry geom((real)(r_cell * 1e-5));
 
-  // Setting spring flag.
+  // Set spring flag
   cell->SetSpringFlag(false);
 
-  // Initializing poles
+  // Initialize poles
   vec3r pos = vec3r::DEFAULT_LEFT * (l_poles / 2);
   cell->GetPole(PoleType::Left)->Position() = pos;
   cell->GetPole(PoleType::Right)->Position() = -pos;
 
-  // Initializing micro tubes.
+  // Initialize micro tubules
   const std::vector<MT *> &MTs = cell->MTs();
   for (size_t i = 0; i < MTs.size(); i++)
   {
-    double alpha = Random::NextReal(seed) * PI * 2;
-        real dx = Random::NextReal(seed) * (MTs[i]->GetPole()->Type() == PoleType::Left ? 1 : -1);
-        real dy = (real)(std::sqrt(1.0 - dx * dx) * std::cos(alpha));
-        real dz = (real)(std::sqrt(1.0 - dx * dx) * std::sin(alpha));
+    double alpha = Random::NextReal(state) * PI * 2;
+    real dx = Random::NextReal(state) * (MTs[i]->GetPole()->Type() == PoleType::Left ? 1 : -1);
+    real dy = (real)(std::sqrt(1.0 - dx * dx) * std::cos(alpha));
+    real dz = (real)(std::sqrt(1.0 - dx * dx) * std::sin(alpha));
     MTs[i]->Direction() = vec3r(dx, dy, dz);
     MTs[i]->Length() = (real)0.0;
     MTs[i]->State() = MTState::Polymerization;
   }
 
-  // Inititalizing chromosomes. Pair of Chromosomes is (half-sphere + cylinder) + cylinder + (cylinder + half-sphere).
+  // Inititalize chromosomes
+  // Pair of Chromosomes is (half-sphere + cylinder) + cylinder + (cylinder + half-sphere)
   const std::vector<Chromosome *> &chrs = cell->Chromosomes();
   double cr_r = std::max(cr_hand_r, cr_kin_r);
   double cr_hand_l = (cr_l - cr_kin_l) / 2;
@@ -64,10 +65,10 @@ void RandomCellInitialzier::InitializeCell(ICell *cell, uint32_t &seed)
     bool canFlag;
     do
     {
-      real xAngle = (real)(Random::NextReal(seed) * 2 * PI);
+      real xAngle = (real)(Random::NextReal(state) * 2 * PI);
       orient = MatrixRotationX(xAngle);
-      pos.y = (real)(Random::NextReal(seed) * (2 * r_cell) - r_cell);
-      pos.z = (real)(Random::NextReal(seed) * (2 * r_cell) - r_cell);
+      pos.y = (real)(Random::NextReal(state) * (2 * r_cell) - r_cell);
+      pos.z = (real)(Random::NextReal(state) * (2 * r_cell) - r_cell);
       // Check if we can place pair of chromosomes here
       canFlag = true;
       // Check cell boundaries

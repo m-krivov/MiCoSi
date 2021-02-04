@@ -15,7 +15,7 @@ namespace Mitosis
   public ref class Cell : public IObjectWithID
   {
     private:
-      ::Cell *_cell;
+      const ::Cell *_cell;
       CellData ^_data;
       MappedObjects ^_objects;
       Dictionary<PoleType, Pole ^> ^_poles;
@@ -24,7 +24,7 @@ namespace Mitosis
       List<ChromosomePair ^> ^_pairs;
 
     internal:
-      Cell(::Cell *cell)
+      Cell(const ::Cell *cell)
       {
         // Creating data
         _data = gcnew CellData(&cell->Data());
@@ -70,7 +70,7 @@ namespace Mitosis
         }
       }      
 
-      ::Cell *GetObject()
+      const ::Cell *GetObject()
       { return _cell; }
 
     public:

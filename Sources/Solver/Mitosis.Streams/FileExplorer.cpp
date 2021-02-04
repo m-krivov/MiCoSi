@@ -178,7 +178,7 @@ FileExplorer::ChunkElement* FileExplorer::ReadingChunk::Read(size_t idx)
 //--- FileExplorer ---
 //--------------------
 
-FileExplorer::FileExplorer(const char *file)
+FileExplorer::FileExplorer(const std::string &file)
 {
   _file = file;
   _fc.reset();
@@ -372,7 +372,7 @@ FileExplorer::~FileExplorer()
   _fc.reset();
 }
 
-FileExplorer* FileExplorer::Create(const char *file, size_t elemPerChunk, uint64_t version)
+FileExplorer* FileExplorer::Create(const std::string &file, size_t elemPerChunk, uint64_t version)
 {
   auto fc = FileContainer::Create(file, version);
 
@@ -385,7 +385,7 @@ FileExplorer* FileExplorer::Create(const char *file, size_t elemPerChunk, uint64
   return res;
 }
 
-FileExplorer *FileExplorer::Open(const char *file, size_t elemPerChunk)
+FileExplorer *FileExplorer::Open(const std::string &file, size_t elemPerChunk)
 {
   auto fc = FileContainer::Open(file);
 
@@ -399,7 +399,7 @@ FileExplorer *FileExplorer::Open(const char *file, size_t elemPerChunk)
   return res;
 }
 
-FileExplorer *FileExplorer::Repair(const char *file, FrameExtractor fextr, ServiceExtractor sextr,
+FileExplorer *FileExplorer::Repair(const std::string &file, FrameExtractor fextr, ServiceExtractor sextr,
                                    CellExtractor cextr, size_t elemPerChunk)
 {
   auto fc = FileContainer::Repair(file, fextr, sextr, cextr);

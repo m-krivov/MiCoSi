@@ -10,7 +10,7 @@ class CellOps
     CellOps() = delete;
     CellOps(const CellOps &) = delete;
     CellOps(const Cell *cell);
-    void operator =(const CellOps &) = delete;
+    CellOps &operator =(const CellOps &) = delete;
 
     // Counts the number of MTs that are bound to kinetochores
     // Enumeration corresponds to the vector with chromosomes
@@ -28,7 +28,7 @@ class CellOps
 
     // Version that extracts KMTs for single chromosome
     // Note: this operation is not fast, do not abuse it
-    std::vector<MT *> ExtractKMTs(Chromosome *chr) const;
+    std::vector<MT *> ExtractKMTs(const Chromosome *chr) const;
 
   private:
     const Cell *_cell;

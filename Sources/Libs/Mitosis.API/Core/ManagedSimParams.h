@@ -171,12 +171,25 @@ namespace Mitosis
   public ref class SimParams : public System::ICloneable, public System::IDisposable
   {
     private:
-      bool _isOwner;
       ::SimParams *_params;
 
     internal:
-      SimParams(::SimParams *params, bool takeOwnership)
-      { _params = params; _isOwner = takeOwnership; }
+      SimParams(::SimParams *params)
+      { _params = params; }
+
+      SimParams(const ::SimParams &params)
+      {
+        try
+        {
+          auto values = params.ExportValues();
+          _params = new ::SimParams();
+          _params->SetAccess(::SimParams::Access::Initialize);
+          _params->ImportValues(values);
+          _params->SetAccess(::SimParams::Access::ReadOnly);
+        }
+        catch (std::exception &ex)
+        { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
+      }
 
       ::SimParams *GetObject()
       { return _params; }
@@ -185,8 +198,11 @@ namespace Mitosis
       {
         try
         {
-          if (_isOwner && _params != NULL) delete _params;
-          _params = NULL;
+          if (_params != nullptr)
+          {
+            delete _params;
+            _params = nullptr;
+          }
         }
         catch (std::exception &ex)
         { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
@@ -199,7 +215,6 @@ namespace Mitosis
         {
           _params = new ::SimParams();
           _params->SetAccess(::SimParams::Access::Initialize);
-          _isOwner = true;
         }
         catch (std::exception &ex)
         { throw gcnew System::ApplicationException(gcnew System::String(ex.what())); }
@@ -291,7 +306,7 @@ namespace Mitosis
           std::string props = ::SimParamsFormatter::ExportAsProps(_params);
           ::SimParamsFormatter::ImportAsProps(params, props);
           params->SetAccess(_params->GetAccess());
-          return gcnew SimParams(params, true);
+          return gcnew SimParams(params);
         }
         catch (std::exception &ex)
         {

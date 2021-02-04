@@ -8,26 +8,25 @@
 //--- Simulator ---
 //-----------------
 
-void Simulator::Init(std::vector<std::pair<Cell *, uint32_t *> > &cells, double startTime)
+void Simulator::Init(std::vector<std::unique_ptr<CellWithRng> > &cells, double startTime)
 {
-  _cells = cells;
-  Bind(_cells);
-  cells.clear();
-
+  if (cells.size() == 0)
+  { throw std::runtime_error("cannot initialize solver without cells"); }
+  
+  _cellCount = cells.size();
   _time = startTime;
-  _cellsAreValid = true;
   _statsAreValid = false;
+
+  Import(cells);
 }
 
-const std::vector<std::pair<Cell *, uint32_t *> > &Simulator::Cells()
+const std::vector<std::unique_ptr<CellWithRng> > &Simulator::Cells()
 {
-  if (!_cellsAreValid)
-  {
-    SynchronizeCells();
-    _cellsAreValid = true;
-  }
+  decltype(auto) cells = SynchronizeCells();
+  if (cells.size() != _cellCount)
+  { throw std::runtime_error("internal error, solver has returned wrong number of cells"); }
 
-  return _cells;
+  return cells;
 }
 
 const std::vector<CellStats> &Simulator::Stats()
@@ -36,6 +35,9 @@ const std::vector<CellStats> &Simulator::Stats()
   {
     _stats.clear();
     FormatStats(_stats);
+    if (_stats.size() != _cellCount)
+    { throw std::runtime_error("internal error, solver has returned wrong number of cells"); }
+
     _statsAreValid = true;
   }
 
@@ -52,7 +54,7 @@ bool Simulator::IsFinished()
 void Simulator::DoIteration()
 {
   if (IsFinished())
-    throw std::runtime_error("Internal error at Simulator::DoIteration() - simulation is finished, new iteration cannot be done");
+  { throw std::runtime_error("internal error: simulation is finished and new iteration cannot be done"); }
 
   IterationStarted();
   DoPoleUpdatingStep(Time());
@@ -62,19 +64,5 @@ void Simulator::DoIteration()
   IterationFinished();
 
   _time += GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::Dt, true);
-  _cellsAreValid = false;
   _statsAreValid = false;
-}
-
-Simulator::~Simulator()
-{
-  for (size_t i = 0; i < _cells.size(); i++)
-  {
-    if (_cells[i].first != NULL)
-      delete _cells[i].first;
-
-    if (_cells[i].second != NULL)
-      delete _cells[i].second;
-  }
-  _cells.clear();
 }

@@ -282,7 +282,7 @@ static inline  String ^CollisionTest(SimParams ^config,
     Helper::PrepareTestDirectory();
     auto parameters = gcnew LaunchParameters();
     parameters->Config = config;
-    parameters->Args->RngSeed = 100500;
+    parameters->Args->UserSeed = 100500;
 
     CollisionRender ^render = nullptr;
     try

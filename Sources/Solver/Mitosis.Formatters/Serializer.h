@@ -1,5 +1,5 @@
-
 #pragma once
+#include "Mitosis.Core/Defs.h"
 
 #include "tinyxml.h"
 #include "Mitosis.Core/Versions.h"
@@ -8,24 +8,26 @@
 
 #include "MemoryStream.h"
 
-// Static class that performs serialization into XML-nodes.
+// Static class that performs serialization into XML-nodes
 class Serializer
 {
   public:
-    // Serializes simulator version that was used in order to create file.
-    // Never returns NULL, can throw std::runtime_error().
+    Serializer() = delete;
+    Serializer(const Serializer &) = delete;
 
-    static uint64_t SerializeVersion(const Version *programVersion, int fileFormatVersion);
+    // Serializes simulator version that was used in order to create file
+    static uint64_t SerializeVersion(const Version &programVersion, int fileFormatVersion);
 
-    // Serializes unchangeabale information about cell.
-    // Never returns NULL, can throw std::runtime_error().
-    static TiXmlElement *SerializeCellConfiguration(Cell *cell, uint32_t initialRandSeed, MemoryStream *stream);
+    // Serializes the unchangeabale information about cell
+    static TiXmlElement *SerializeCellConfiguration(const Cell &cell,
+                                                    const Random::State &rngState,
+                                                    int64_t rngSeed,
+                                                    MemoryStream &stream);
 
-    // Serializes time layer (only changeable values of the Cell parameters).
-    // Never returns NULL, can throw std::runtime_error().
-    static TiXmlElement *SerializeTimeLayer(Cell *cell, double time, uint32_t randSeed, MemoryStream *stream);
+    // Serializes time layer (only changeable values of the Cell's parameters)
+    static TiXmlElement *SerializeTimeLayer(const Cell &cell, double time,
+                                            const Random::State &rng, MemoryStream &stream);
 
-    // Serializes simulation parameters.
-    // Never returns NULL, can throw std::runtime_error().
-    static TiXmlElement *SerializeSimParams(SimParams *params, MemoryStream* stream);
+    // Serializes simulation parameters
+    static TiXmlElement *SerializeSimParams(const SimParams &params, MemoryStream &stream);
 };

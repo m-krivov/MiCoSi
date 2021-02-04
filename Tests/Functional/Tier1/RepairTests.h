@@ -38,7 +38,7 @@ static inline std::string RepairVerifyFile(String ^cellfile, bool corrupted)
     parameters->Config[SimParameter::Int::N_MT_Total] = 200;          \
     parameters->Config[SimParameter::Int::N_Cr_Total] = 2;            \
     parameters->Config[SimParameter::Double::T_End] = 50.0;           \
-    parameters->Args->RngSeed = 100500;                               \
+    parameters->Args->UserSeed = 100500;                              \
                                                                       \
     /*Creating correct cell file*/                                    \
     parameters->Args->CellFile = correctFile;                         \

@@ -93,7 +93,7 @@ void XmlCellInitializer::GetCellConfig(size_t &chrPairs, size_t &mtsPerPole)
   chrPairs = (size_t)chrPairCount1;
 }
 
-void XmlCellInitializer::InitializeCell(ICell *cell, uint32_t &seed)
+void XmlCellInitializer::InitializeCell(ICell *cell, Random::State &)
 {
   real r_cell = (real)GlobalSimParams::GetRef()->GetParameter(SimParameter::Double::R_Cell, true);
 

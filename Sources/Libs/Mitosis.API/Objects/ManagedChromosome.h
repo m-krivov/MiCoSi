@@ -15,19 +15,19 @@ namespace Mitosis
   public ref class Chromosome : public IObjectWithID
   {
     private:
-      ::Cell *_cell;
-      ::Chromosome *_chr;
+      const ::Cell *_cell;
+      const ::Chromosome *_chr;
       MappedObjects ^_objects;
 
     internal:
-      Chromosome(::Cell *cell, ::Chromosome *chr, MappedObjects ^objects)
+      Chromosome(const ::Cell *cell, const ::Chromosome *chr, MappedObjects ^objects)
       {
         _cell = cell;
         _chr = chr;
         _objects = objects;
       }
 
-      ::Chromosome *GetObject()
+      const ::Chromosome *GetObject()
       { return _chr; }
 
     public:
