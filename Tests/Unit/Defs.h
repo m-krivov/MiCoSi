@@ -1,4 +1,3 @@
-
 #include <gtest/gtest.h>
 
 #define ASSERT_EQ_EPS(val1, val2, eps)        \

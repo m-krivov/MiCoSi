@@ -1,4 +1,3 @@
-
 #include "Defs.h"
 
 #include "DistanceTests.h"

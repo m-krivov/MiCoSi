@@ -1,5 +1,0 @@
-discover_cs(${CMAKE_CURRENT_LIST_DIR} MITOSIS_LAUNCHER_CS)
-add_library(Mitosis.Launcher SHARED ${MITOSIS_LAUNCHER_CS})
-configure_cs(Mitosis.Launcher "Mitosis.Launcher" Mitosis.API ConsoleApp.CliArgs)
-export_to_sdk(Mitosis.Launcher)
-add_dependencies(Mitosis.Launcher ConsoleApp Mitosis.API ConsoleApp.CliArgs)

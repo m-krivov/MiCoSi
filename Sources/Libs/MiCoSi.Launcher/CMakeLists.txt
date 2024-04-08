@@ -1,0 +1,5 @@
+discover_cs(${CMAKE_CURRENT_LIST_DIR} MICOSI_LAUNCHER_CS)
+add_library(MiCoSi.Launcher SHARED ${MICOSI_LAUNCHER_CS})
+configure_cs(MiCoSi.Launcher "MiCoSi.Launcher" MiCoSi.API MiCoSi.CliArgs)
+export_to_sdk(MiCoSi.Launcher)
+add_dependencies(MiCoSi.Launcher MiCoSi.App MiCoSi.API MiCoSi.CliArgs)

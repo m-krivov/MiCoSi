@@ -1,7 +1,7 @@
 #pragma once
 #include "Defs.h"
 
-#include "Mitosis.Geometry/Geometry.h"
+#include "MiCoSi.Geometry/Geometry.h"
 
 TEST(Distance, PointToSegment1)
 {

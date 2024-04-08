@@ -1,2 +1,0 @@
-
-#include "ManagedMT.h"

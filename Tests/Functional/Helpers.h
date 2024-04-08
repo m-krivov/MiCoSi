@@ -30,7 +30,7 @@ public ref class Helper
 
     static property String ^SimulatorFile
     {
-      String ^get() { return Path::Combine(WorkingDirectory, "mitosis.exe"); }
+      String ^get() { return Path::Combine(WorkingDirectory, "MiCoSi.exe"); }
     }
 
     static void PrepareTestDirectory()

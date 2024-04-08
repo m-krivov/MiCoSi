@@ -1,7 +1,7 @@
 #pragma once
 #include "Defs.h"
 
-#include "Mitosis.Core/Random.h"
+#include "MiCoSi.Core/Random.h"
 
 TEST(Random, NewStates)
 {

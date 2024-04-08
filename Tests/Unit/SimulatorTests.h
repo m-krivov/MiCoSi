@@ -1,7 +1,7 @@
 #pragma once
 #include "Defs.h"
 
-#include "Mitosis.Solvers/SimulatorConfig.h"
+#include "MiCoSi.Solvers/SimulatorConfig.h"
 
 static inline bool SerializeDeserializeTest(const SimulatorConfig &config)
 {

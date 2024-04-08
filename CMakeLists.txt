@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.18)
 project(MiCoSi LANGUAGES CXX CSharp)
 if(NOT MSVC)
   message(FATAL_ERROR "MiCoSi can be compiled only by Visual Studio")
@@ -10,25 +10,41 @@ include(CSharpUtilities)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE)
 set(CMAKE_SUPPRESS_REGENERATION ON)
+unset(CMAKE_INSTALL_PREFIX CACHE)
+
 set(WORKING_DIR ${CMAKE_SOURCE_DIR}/WORKING_DIR)
 set(SDK_DIR     ${WORKING_DIR}/SDK)
 
 
-# Discover Google Tests
-if(EXISTS $ENV{GTEST_ROOT}/include)
-  enable_testing()
-  find_package(GTest REQUIRED)
+# Configure compilation options for C++
+set(MICOSI_COMPILE_DEFINITIONS)
+
+set(MICOSI_PRECISION "fp32" CACHE STRING
+    "How many bits per floating point number must be used by default?")
+set_property(CACHE MICOSI_PRECISION PROPERTY STRINGS "fp32" "fp64")
+if(${MICOSI_PRECISION} STREQUAL "fp64")
+  list(APPEND MICOSI_COMPILE_DEFINITIONS "MICOSI_PRECISION_FP64")
 else()
-  set(GTEST_FOUND OFF)
-  message(WARNING "Google Tests is not found, unit tests are disabled")
+  list(APPEND MICOSI_COMPILE_DEFINITIONS "MICOSI_PRECISION_FP32")
 endif()
+
+set(MICOSI_RNG "Mersenne Twister" CACHE STRING
+    "Which implementation of Random Number Generator (RNG) must be used?")
+set_property(CACHE MICOSI_RNG PROPERTY STRINGS "Linear Congruential" "Mersenne Twister")
+if(${MICOSI_RNG} STREQUAL "Linear Congruential")
+  list(APPEND MICOSI_COMPILE_DEFINITIONS "MICOSI_RNG_LCG")
+else()
+  list(APPEND MICOSI_COMPILE_DEFINITIONS "MICOSI_RNG_MTG")
+endif()
+
 
 # Find packages for parallel simulations
 find_package(OpenMP REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 
-# Define macros for less code duplication
+
+# Define macros for the lesser code duplication
 macro(discover_cpp dir headers cpp)
   file(GLOB_RECURSE ${headers} ${dir}/*.h)
   file(GLOB_RECURSE ${cpp}     ${dir}/*.cpp)
@@ -49,29 +65,33 @@ macro(discover_cpp dir headers cpp)
       source_group("Source Files\\${_group_path}" FILES "${_source}")
     endforeach()
   endif()
-endmacro(discover_cpp dir headers cpp)
+endmacro()
 
 macro(discover_cs dir sources)
   file(GLOB_RECURSE ${sources} ${dir}/*.cs)
   csharp_set_windows_forms_properties(${${sources}})
-endmacro(discover_cs dir sources)
+endmacro()
 
 set(CURRENT_FILTER "")
 macro(configure_filter proj)
 if(MSVC AND NOT "${CURRENT_FILTER}" STREQUAL "")
   set_target_properties(${proj} PROPERTIES FOLDER ${CURRENT_FILTER})
 endif()
-endmacro(configure_filter proj)
+endmacro()
 
 macro(configure_cpp proj out_name)
   configure_filter(${proj})
-  target_include_directories(${proj} PUBLIC ${CMAKE_SOURCE_DIR}/Sources/Solver)
-  target_include_directories(${proj} PUBLIC ${CMAKE_SOURCE_DIR}/Sources/Apps)
-  target_include_directories(${proj} PUBLIC ${CMAKE_SOURCE_DIR}/3rdParty/TinyXML)
-  target_include_directories(${proj} PUBLIC ${CMAKE_SOURCE_DIR}/3rdParty/ttgLabs)
-  target_include_directories(${proj} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-  set_target_properties(${proj} PROPERTIES PREFIX "")
-  set_target_properties(${proj} PROPERTIES OUTPUT_NAME ${out_name})
+  target_include_directories(${proj} PUBLIC
+                             ${CMAKE_SOURCE_DIR}/Sources/Solver
+							 ${CMAKE_SOURCE_DIR}/Sources/Apps
+							 ${CMAKE_SOURCE_DIR}/3rdParty/TinyXML
+							 ${CMAKE_SOURCE_DIR}/3rdParty/ttgLabs
+							 ${CMAKE_CURRENT_LIST_DIR})
+  target_compile_definitions(${proj} PUBLIC
+                             ${MICOSI_COMPILE_DEFINITIONS})
+  set_target_properties(${proj} PROPERTIES
+                        PREFIX ""
+						OUTPUT_NAME ${out_name})
 
   set(args ${ARGN})
   list(LENGTH args arg_num)
@@ -80,7 +100,8 @@ macro(configure_cpp proj out_name)
     foreach(i RANGE 0 ${arg_num})
       list(GET args ${i} arg)
       get_target_property(arg_type ${arg} TYPE)
-      if(arg_type STREQUAL "STATIC_LIBRARY")
+      if(arg_type STREQUAL "STATIC_LIBRARY" OR
+         arg_type STREQUAL "INTERFACE_LIBRARY")
         target_link_libraries(${proj} ${arg})
       endif()
     endforeach(i)
@@ -97,7 +118,7 @@ macro(configure_cpp proj out_name)
   if(MSVC AND proj_type STREQUAL "EXECUTABLE")
     set_property(TARGET ${proj} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${WORKING_DIR}")
   endif()
-endmacro(configure_cpp proj out_name)
+endmacro()
 
 macro(configure_clicpp proj out_name)
   configure_cpp(${proj} ${out_name} ${ARGN})
@@ -122,7 +143,7 @@ macro(configure_clicpp proj out_name)
     endforeach(i)
   endif()
   set_property(TARGET ${proj} PROPERTY VS_DOTNET_REFERENCES ${dotnet_deps})
-endmacro(configure_clicpp proj out_name)
+endmacro()
 
 macro(configure_cs proj out_name)
   configure_filter(${proj})
@@ -148,7 +169,11 @@ macro(configure_cs proj out_name)
     math(EXPR arg_num ${arg_num}-1)
     foreach(i RANGE 0 ${arg_num})
       list(GET args ${i} arg)
-      list(APPEND cs_deps "${WORKING_DIR}/${arg}.dll")
+      string(FIND "${arg}" "System." pos)
+      if(NOT ${pos} EQUAL 0)
+        set(arg "${WORKING_DIR}/${arg}.dll")
+      endif()
+      list(APPEND cs_deps "${arg}")
     endforeach(i)
   set_property(TARGET ${proj} PROPERTY VS_DOTNET_REFERENCES ${cs_deps})
 
@@ -173,7 +198,7 @@ macro(configure_cs proj out_name)
 
   endif()
 
-endmacro(configure_cs proj out_name)
+endmacro()
 
 macro(export_to_sdk proj)
   get_target_property(tt ${proj} TYPE)
@@ -181,7 +206,7 @@ macro(export_to_sdk proj)
     add_custom_command(TARGET ${proj} POST_BUILD
                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${proj}> ${SDK_DIR}/Bin)
   endif()
-endmacro(export_to_sdk proj)
+endmacro()
 
 # Create working directory for all binaries, debuggung and unit tests
 file(MAKE_DIRECTORY ${WORKING_DIR})
